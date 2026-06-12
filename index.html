@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ImmoAssess – Verkehrswertermittlung für Notarassessoren</title>
+  <style>
+    /* ═══════════════════════════════════════════════════
+       CI BADEN-WÜRTTEMBERG (Stand 2024)
+       BaWü Gelb #FFFC00 · BaWü Schwarz #2A2623 · Grautöne
+    ═══════════════════════════════════════════════════ */
+    :root {
+      --bw-gelb:    #FFFC00;
+      --bw-gelb-d:  #E0DD00;
+      --bw-gelb-pale: #FFFEE0;
+      --bw-schwarz: #2A2623;
+      --grau-6: #47403C;
+      --grau-5: #6D6766;
+      --grau-4: #918C8C;
+      --grau-3: #BBB6B5;
+      --grau-2: #E4E0E0;
+      --grau-1: #F4F3F3;
+      --weiss:  #FFFFFF;
+      --blau:   #508CF1;   /* Hinweis/Info */
+      --blau-d: #0A3C90;
+      --blau-bg:#E8F0FE;
+      --gruen:  #609D0F;   /* Erfolg */
+      --gruen-d:#2B4904;
+      --rot:    #FD4D4D;   /* Fehler */
+      --rot-d:  #85100C;
+      --radius: 10px;
+      --radius-s: 6px;
+      --shadow: 0 4px 20px rgba(42,38,35,0.08);
+      --shadow-card: 0 1px 3px rgba(42,38,35,0.06), 0 8px 24px rgba(42,38,35,0.05);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--grau-1);
+      color: var(--bw-schwarz);
+      min-height: 100vh; display: flex; flex-direction: column;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--bw-schwarz); color: var(--weiss);
+      padding: 0 32px; display: flex; align-items: center; justify-content: space-between;
+      height: 72px; position: sticky; top: 0; z-index: 100;
+    }
+    .header-logo { display: flex; align-items: center; gap: 14px; }
+    .header-flag {
+      width: 44px; height: 44px; background: var(--bw-gelb);
+      border-radius: var(--radius-s); display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; position: relative; overflow: hidden;
+    }
+    .header-flag span {
+      font-weight: 900; font-size: 22px; color: var(--bw-schwarz);
+      line-height: 1; letter-spacing: -1px;
+    }
+    .header-title { font-size: 15px; font-weight: 800; color: var(--weiss); line-height: 1.25; letter-spacing: -0.2px; }
+    .header-title small { color: var(--bw-gelb); font-weight: 500; font-size: 11.5px; display: block; margin-top: 2px; letter-spacing: 0.1px; }
+    .header-tag {
+      font-size: 11px; color: var(--bw-schwarz); background: var(--bw-gelb);
+      padding: 5px 12px; border-radius: 20px; letter-spacing: 0.2px; font-weight: 700;
+    }
+
+    /* ── DISCLAIMER BANNER ── */
+    .disclaimer-banner {
+      background: var(--bw-gelb); color: var(--bw-schwarz);
+      padding: 9px 32px; font-size: 11.5px; font-weight: 500;
+      display: flex; align-items: center; gap: 8px; line-height: 1.45;
+    }
+    .disclaimer-banner strong { font-weight: 800; }
+
+    /* ── MAIN ── */
+    main { flex: 1; max-width: 800px; width: 100%; margin: 0 auto; padding: 32px 16px 48px; }
+
+    /* ── PROGRESS ── */
+    .progress-wrap { margin-bottom: 26px; }
+    .progress-label {
+      display: flex; justify-content: space-between; font-size: 11px;
+      color: var(--grau-5); margin-bottom: 7px; letter-spacing: 0.4px;
+      text-transform: uppercase; font-weight: 600;
+    }
+    .progress-bar { height: 5px; background: var(--grau-2); border-radius: 3px; overflow: hidden; }
+    .progress-bar-fill {
+      height: 100%; background: var(--bw-gelb);
+      border-radius: 3px; transition: width 0.45s cubic-bezier(0.4,0,0.2,1);
+    }
+    .step-dots { display: flex; gap: 7px; margin-bottom: 22px; flex-wrap: wrap; }
+    .step-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--grau-3); transition: all 0.3s; }
+    .step-dot.done { background: var(--bw-schwarz); }
+    .step-dot.active { background: var(--bw-gelb); width: 28px; border-radius: 5px; box-shadow: 0 0 0 3px var(--bw-gelb-pale); }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--weiss); border-radius: var(--radius);
+      box-shadow: var(--shadow-card); padding: 32px 34px 34px; margin-bottom: 16px;
+    }
+
+    /* ── STEP HEADER ── */
+    .step-eyebrow {
+      font-size: 10.5px; letter-spacing: 1.4px; text-transform: uppercase;
+      color: var(--grau-5); font-weight: 700; margin-bottom: 8px;
+    }
+    .step-heading { font-size: 24px; font-weight: 800; color: var(--bw-schwarz); line-height: 1.2; margin-bottom: 8px; letter-spacing: -0.5px; }
+    .step-sub { font-size: 13.5px; color: var(--grau-5); margin-bottom: 26px; line-height: 1.55; }
+
+    /* ── FORM ── */
+    .field { margin-bottom: 20px; }
+    .field label { display: block; font-size: 12.5px; font-weight: 700; color: var(--grau-6); margin-bottom: 7px; letter-spacing: 0.1px; }
+    .field label .hint { font-weight: 400; color: var(--grau-4); font-size: 11.5px; }
+    .field input, .field select {
+      width: 100%; padding: 11px 14px; border: 1.5px solid var(--grau-3);
+      border-radius: var(--radius-s); font-size: 14.5px; color: var(--bw-schwarz);
+      background: var(--weiss); transition: all 0.18s; font-family: inherit;
+      appearance: none; -webkit-appearance: none;
+    }
+    .field input:focus, .field select:focus {
+      outline: none; border-color: var(--bw-schwarz);
+      box-shadow: 0 0 0 3px var(--bw-gelb);
+    }
+    .field input::placeholder { color: var(--grau-4); }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field-unit { position: relative; }
+    .field-unit input { padding-right: 48px; }
+    .field-unit .unit { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 12.5px; color: var(--grau-4); pointer-events: none; font-weight: 600; }
+
+    /* ── TYPE SELECTOR ── */
+    .type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 26px; }
+    .type-btn {
+      border: 2px solid var(--grau-2); background: var(--weiss);
+      border-radius: var(--radius-s); padding: 18px 12px;
+      cursor: pointer; text-align: center; transition: all 0.18s;
+    }
+    .type-btn:hover { border-color: var(--bw-schwarz); transform: translateY(-2px); }
+    .type-btn.selected { border-color: var(--bw-schwarz); background: var(--bw-gelb-pale); box-shadow: 0 0 0 3px var(--bw-gelb); }
+    .type-btn .icon { font-size: 28px; margin-bottom: 8px; display: block; }
+    .type-btn .label { font-size: 13px; font-weight: 700; color: var(--bw-schwarz); line-height: 1.3; }
+    .type-btn .method { font-size: 10px; color: var(--grau-5); margin-top: 4px; font-weight: 500; }
+
+    /* ── INFO BOX (Gelb) ── */
+    .info-box {
+      background: var(--bw-gelb-pale); border: 1.5px solid var(--bw-gelb-d);
+      border-radius: var(--radius-s); padding: 14px 18px; margin-bottom: 22px;
+      display: flex; align-items: flex-start; gap: 12px; font-size: 12.5px;
+    }
+    .info-box .ib-title { font-weight: 800; color: var(--bw-schwarz); font-size: 12.5px; margin-bottom: 2px; }
+    .info-box .ib-text { color: var(--grau-6); line-height: 1.55; }
+
+    /* ── BUTTONS ── */
+    .btn-primary {
+      background: var(--bw-gelb); color: var(--bw-schwarz);
+      border: none; border-radius: var(--radius-s);
+      padding: 12px 18px; font-size: 13px; font-weight: 800;
+      cursor: pointer; transition: all 0.18s; font-family: inherit; letter-spacing: 0.2px;
+    }
+    .btn-primary:hover { background: var(--bw-gelb-d); }
+    .btn-dark {
+      background: var(--bw-schwarz); color: var(--weiss);
+      border: none; border-radius: var(--radius-s);
+      padding: 12px 18px; font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all 0.18s; font-family: inherit;
+    }
+    .btn-dark:hover { background: var(--grau-6); }
+    .btn-dark:disabled { background: var(--grau-3); cursor: not-allowed; }
+
+    .boris-status { font-size: 11.5px; margin-top: 10px; min-height: 16px; line-height: 1.5; }
+    .boris-status.loading { color: var(--blau-d); }
+    .boris-status.ok { color: var(--gruen-d); font-weight: 600; }
+    .boris-status.err { color: var(--rot-d); }
+    .boris-status a { color: var(--bw-schwarz); font-weight: 700; }
+
+    /* ── RADIO ── */
+    .radio-group { display: flex; gap: 9px; flex-wrap: wrap; }
+    .radio-opt {
+      border: 1.5px solid var(--grau-3); border-radius: var(--radius-s);
+      padding: 9px 16px; cursor: pointer; font-size: 13px; transition: all 0.16s;
+      user-select: none; font-weight: 500;
+    }
+    .radio-opt:hover { border-color: var(--bw-schwarz); }
+    .radio-opt.selected { border-color: var(--bw-schwarz); background: var(--bw-gelb); color: var(--bw-schwarz); font-weight: 700; }
+
+    /* ── NAV ── */
+    .nav-row { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; }
+    .btn-back {
+      background: none; border: 1.5px solid var(--grau-3); border-radius: var(--radius-s);
+      padding: 11px 22px; font-size: 13.5px; font-weight: 700; color: var(--grau-6);
+      cursor: pointer; transition: all 0.18s; font-family: inherit;
+    }
+    .btn-back:hover { border-color: var(--bw-schwarz); color: var(--bw-schwarz); }
+    .btn-next {
+      background: var(--bw-gelb); color: var(--bw-schwarz);
+      border: none; border-radius: var(--radius-s);
+      padding: 12px 32px; font-size: 14.5px; font-weight: 800;
+      cursor: pointer; transition: all 0.18s; font-family: inherit; letter-spacing: 0.2px;
+    }
+    .btn-next:hover { background: var(--bw-gelb-d); transform: translateX(2px); }
+    .btn-next:disabled { background: var(--grau-2); color: var(--grau-4); cursor: not-allowed; transform: none; }
+
+    /* ── ERGEBNIS ── */
+    .result-hero { text-align: center; padding: 24px 0 30px; border-bottom: 1.5px solid var(--grau-2); margin-bottom: 26px; }
+    .result-label { font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--grau-5); margin-bottom: 10px; font-weight: 600; }
+    .result-value { font-size: 48px; font-weight: 900; color: var(--bw-schwarz); letter-spacing: -1.5px; line-height: 1; }
+    .result-value::after { content: ''; display: block; width: 60px; height: 5px; background: var(--bw-gelb); margin: 14px auto 0; border-radius: 3px; }
+    .result-range { font-size: 14px; color: var(--grau-5); margin-top: 16px; }
+    .result-method { display: inline-block; margin-top: 12px; background: var(--bw-schwarz); border-radius: 20px; padding: 5px 16px; font-size: 11px; color: var(--weiss); font-weight: 600; }
+    .result-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1.5px;
+      background: var(--grau-2); border-radius: var(--radius-s); overflow: hidden; margin-bottom: 22px;
+    }
+    .result-cell { background: var(--weiss); padding: 16px 18px; }
+    .result-cell .rc-label { font-size: 11px; color: var(--grau-5); margin-bottom: 4px; font-weight: 500; }
+    .result-cell .rc-val { font-size: 16px; font-weight: 800; color: var(--bw-schwarz); }
+    .result-steps { margin-bottom: 22px; }
+    .result-steps h3 { font-size: 12.5px; font-weight: 800; margin-bottom: 12px; color: var(--grau-6); text-transform: uppercase; letter-spacing: 0.6px; }
+    .calc-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 9px 0; border-bottom: 1px solid var(--grau-1); font-size: 13px;
+    }
+    .calc-row:last-child { border-bottom: none; }
+    .calc-row .cr-label { color: var(--grau-6); display: flex; align-items: baseline; gap: 6px; }
+    .calc-row .cr-val { font-weight: 700; color: var(--bw-schwarz); white-space: nowrap; }
+    /* Info-Icon im Rechenweg */
+    .cr-info {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 15px; height: 15px; border-radius: 50%;
+      background: var(--blau); color: var(--weiss);
+      font-size: 9px; font-weight: 800; font-style: italic;
+      cursor: pointer; flex-shrink: 0; vertical-align: middle;
+      position: relative; user-select: none;
+    }
+    .cr-info .cr-tooltip {
+      display: none; position: absolute; bottom: 130%; left: 0;
+      background: var(--bw-schwarz); color: var(--weiss);
+      font-size: 11.5px; line-height: 1.55; padding: 10px 14px;
+      border-radius: var(--radius-s); width: 280px; z-index: 60;
+      font-weight: 400; text-align: left; box-shadow: var(--shadow);
+      font-style: normal; pointer-events: none;
+    }
+    .cr-info:hover .cr-tooltip, .cr-info:focus .cr-tooltip { display: block; }
+    .cr-info .cr-tooltip strong { color: var(--bw-gelb); }
+    .calc-row.total { background: var(--bw-gelb-pale); padding: 12px 14px; border-radius: var(--radius-s); margin-top: 5px; border: 1px solid var(--bw-gelb-d); }
+    .calc-row.total .cr-label { font-weight: 800; color: var(--bw-schwarz); font-size: 13px; }
+    .calc-row.total .cr-val { font-size: 17px; color: var(--bw-schwarz); }
+
+    .result-disclaimer {
+      background: var(--bw-gelb-pale); border: 1.5px solid var(--bw-gelb-d);
+      border-radius: var(--radius-s); padding: 16px 18px;
+      font-size: 12px; color: var(--grau-6); line-height: 1.7; margin-top: 18px;
+    }
+    .result-disclaimer .rd-title { font-weight: 800; font-size: 12.5px; color: var(--bw-schwarz); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 7px; }
+
+    .btn-row-result { display: flex; gap: 11px; margin-top: 22px; flex-wrap: wrap; }
+
+    /* ── TOOLTIP / INFO ── */
+    .tooltip-wrap { display: inline-block; position: relative; margin-left: 5px; }
+    .tooltip-icon {
+      width: 16px; height: 16px; border-radius: 50%; background: var(--blau); color: var(--weiss);
+      font-size: 10px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center;
+      cursor: help; vertical-align: middle; font-style: italic;
+    }
+    .tooltip-box {
+      display: none; position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
+      background: var(--bw-schwarz); color: var(--weiss); font-size: 11.5px; line-height: 1.55;
+      padding: 10px 14px; border-radius: var(--radius-s); width: 260px; z-index: 50;
+      font-weight: 400; text-align: left; box-shadow: var(--shadow);
+    }
+    .tooltip-box strong { color: var(--bw-gelb); }
+    .tooltip-wrap:hover .tooltip-box, .tooltip-wrap:focus-within .tooltip-box { display: block; }
+
+    /* GFZ Info-Expander */
+    .gfz-info {
+      background: var(--blau-bg); border: 1.5px solid var(--blau);
+      border-radius: var(--radius-s); padding: 0; margin-top: 8px; overflow: hidden;
+    }
+    .gfz-info summary {
+      cursor: pointer; padding: 10px 14px; font-size: 12px; font-weight: 700;
+      color: var(--blau-d); list-style: none; display: flex; align-items: center; gap: 7px;
+      user-select: none;
+    }
+    .gfz-info summary::-webkit-details-marker { display: none; }
+    .gfz-info summary::before { content: 'ⓘ'; font-size: 15px; }
+    .gfz-info[open] summary { border-bottom: 1px solid var(--blau); }
+    .gfz-info .gfz-content { padding: 12px 14px; font-size: 12px; color: var(--grau-6); line-height: 1.65; }
+    .gfz-info .gfz-content ol { margin: 8px 0 8px 18px; }
+    .gfz-info .gfz-content li { margin-bottom: 5px; }
+    .gfz-info .gfz-content code { background: var(--weiss); padding: 1px 5px; border-radius: 3px; border: 1px solid #c3d6f5; font-size: 11px; }
+    .gfz-info .gfz-content a { color: var(--blau-d); font-weight: 700; }
+
+    /* ── RANGE BAR ── */
+    .range-bar-wrap { margin: 22px 0 10px; }
+    .range-bar-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--grau-5); margin-bottom: 10px; text-align: center; }
+    .range-bar-track {
+      position: relative; height: 12px; background: var(--grau-2);
+      border-radius: 6px; overflow: visible; margin: 0 14px;
+    }
+    .range-bar-fill {
+      position: absolute; top: 0; height: 100%;
+      background: linear-gradient(90deg, var(--grau-3) 0%, var(--bw-gelb) 40%, var(--bw-gelb) 60%, var(--grau-3) 100%);
+      border-radius: 6px;
+    }
+    .range-bar-marker {
+      position: absolute; top: 50%; transform: translate(-50%, -50%);
+      width: 22px; height: 22px; background: var(--bw-schwarz);
+      border-radius: 50%; border: 3px solid var(--weiss);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 2;
+    }
+    .range-bar-legs {
+      display: flex; justify-content: space-between;
+      margin-top: 8px; font-size: 11.5px; font-weight: 700; color: var(--grau-6);
+    }
+    .range-bar-legs .rl-center { font-size: 13px; font-weight: 900; color: var(--bw-schwarz); }
+
+    /* ── AUSSTATTUNG DESCRIPTION ── */
+    .ausstattung-desc {
+      background: var(--grau-1); border-left: 3px solid var(--bw-gelb);
+      border-radius: 0 var(--radius-s) var(--radius-s) 0;
+      padding: 10px 14px; font-size: 12px; color: var(--grau-6);
+      line-height: 1.55; margin-top: 9px; min-height: 44px;
+    }
+    .ausstattung-desc strong { color: var(--bw-schwarz); }
+
+    /* ── CHECKBOX ── */
+    .check-field { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; cursor: pointer; }
+    .check-field input[type=checkbox] { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; accent-color: var(--bw-schwarz); cursor: pointer; }
+    .check-field .check-label { font-size: 13px; color: var(--grau-6); font-weight: 500; line-height: 1.45; }
+    .check-field .check-label strong { color: var(--bw-schwarz); font-weight: 700; }
+
+    .step { display: none; }
+    .step.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .section-sep { border: none; border-top: 1.5px solid var(--grau-2); margin: 20px 0; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--bw-schwarz); color: var(--grau-4);
+      font-size: 11px; text-align: center; padding: 22px 16px; line-height: 1.7;
+    }
+    footer a { color: var(--bw-gelb); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    footer .copyright { color: var(--weiss); font-weight: 700; font-size: 11.5px; margin-bottom: 4px; }
+    footer .copyright span { color: var(--bw-gelb); }
+
+    @media print {
+      header, footer, .nav-row, .btn-row-result, .progress-wrap, .step-dots,
+      .disclaimer-banner, .gfz-info { display: none !important; }
+      body { background: white; }
+      .card { box-shadow: none; border: 1px solid var(--grau-2); }
+      main { max-width: 100%; padding: 0; }
+    }
+    @media (max-width: 560px) {
+      header { padding: 0 16px; height: 64px; }
+      .header-flag { width: 38px; height: 38px; }
+      .header-title { font-size: 13px; }
+      .disclaimer-banner { padding: 8px 16px; }
+      .card { padding: 22px 18px 26px; }
+      .field-row { grid-template-columns: 1fr; }
+      .result-grid { grid-template-columns: 1fr; }
+      .type-grid { grid-template-columns: 1fr 1fr; }
+      .result-value { font-size: 38px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo">
+    <div class="header-flag"><span>§</span></div>
+    <div class="header-title">
+      ImmoAssess
+      <small>Verkehrswertermittlung für Notarassessoren · ImmoWertV 2021</small>
+    </div>
+  </div>
+  <div class="header-tag">Beta Version</div>
+</header>
+
+<main>
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span id="progress-text">Schritt 1 von 4</span>
+      <span id="progress-pct">25 %</span>
+    </div>
+    <div class="progress-bar"><div class="progress-bar-fill" id="progress-fill" style="width:25%"></div></div>
+  </div>
+  <div class="step-dots" id="step-dots"></div>
+
+  <!-- ══ SCHRITT 1 ══ -->
+  <div class="step active" id="step-1">
+    <div class="card">
+      <div class="step-eyebrow">Schritt 1 von 4</div>
+      <div class="step-heading">Welche Art von Immobilie?</div>
+      <div class="step-sub">Wählen Sie den Objekttyp – das Tool wählt automatisch das nach ImmoWertV 2021 passende Wertermittlungsverfahren.</div>
+      <div class="type-grid">
+        <button class="type-btn" data-type="etw" onclick="selectType(this)">
+          <span class="icon">🏢</span><div class="label">Eigentums­wohnung</div><div class="method">Vergleichswert + Sachwert</div>
+        </button>
+        <button class="type-btn" data-type="efh" onclick="selectType(this)">
+          <span class="icon">🏠</span><div class="label">Ein-/Zwei­familienhaus</div><div class="method">Vergleichswert + Sachwert</div>
+        </button>
+        <button class="type-btn" data-type="mfh" onclick="selectType(this)">
+          <span class="icon">🏬</span><div class="label">Mehrfamilien­haus</div><div class="method">Ertragswert</div>
+        </button>
+        <button class="type-btn" data-type="gewerbe" onclick="selectType(this)">
+          <span class="icon">🏭</span><div class="label">Gewerblich</div><div class="method">Ertragswert + Sachwert</div>
+        </button>
+        <button class="type-btn" data-type="grundstueck" onclick="selectType(this)">
+          <span class="icon">📐</span><div class="label">Unbebautes Grundstück</div><div class="method">Bodenrichtwert</div>
+        </button>
+      </div>
+      <div class="nav-row">
+        <span></span>
+        <button class="btn-next" id="btn-1-next" onclick="goStep(2)" disabled>Weiter →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCHRITT 2 ══ -->
+  <div class="step" id="step-2">
+    <div class="card">
+      <div class="step-eyebrow">Schritt 2 von 4</div>
+      <div class="step-heading">Grundstück &amp; Lage</div>
+      <div class="step-sub">Angaben aus Grundbuch, Kataster oder Mandantenauskunft.</div>
+
+      <div class="field">
+        <label>
+          Stadt / Region in BW
+          <span class="tooltip-wrap" tabindex="0">
+            <span class="tooltip-icon">i</span>
+            <span class="tooltip-box">Wahl der Region befüllt <strong>Liegenschaftszinssatz, Sachwertfaktor und Bewirtschaftungskosten</strong> automatisch mit typischen Regionalwerten aus veröffentlichten Grundstücksmarktberichten BW 2024. Alle Werte bleiben manuell überschreibbar.</span>
+          </span>
+        </label>
+        <select id="region_bw" onchange="applyRegionalDefaults()">
+          <option value="">– Bitte wählen (oder manuell eintragen) –</option>
+          <optgroup label="Oberzentren">
+            <option value="stuttgart">Stuttgart</option>
+            <option value="karlsruhe">Karlsruhe</option>
+            <option value="freiburg">Freiburg im Breisgau</option>
+            <option value="mannheim">Mannheim</option>
+            <option value="heidelberg">Heidelberg</option>
+            <option value="ulm">Ulm</option>
+            <option value="heilbronn">Heilbronn</option>
+            <option value="tuebingen">Tübingen</option>
+            <option value="reutlingen">Reutlingen</option>
+            <option value="pforzheim">Pforzheim</option>
+            <option value="konstanz">Konstanz</option>
+            <option value="ludwigsburg">Ludwigsburg</option>
+            <option value="freiburg_region">Freiburg (Umland)</option>
+          </optgroup>
+          <optgroup label="Mittelzentren / Verdichtungsraum">
+            <option value="mittel_verdicht">Mittelzentrum (Verdichtungsraum)</option>
+            <option value="mittel_laendlich">Mittelzentrum (ländlicher Raum)</option>
+          </optgroup>
+          <optgroup label="Ländlicher Raum">
+            <option value="laendlich_gut">Ländlich (gute Lage)</option>
+            <option value="laendlich_normal">Ländlich (normale Lage)</option>
+          </optgroup>
+        </select>
+        <div id="region-hint" style="font-size:11px;color:var(--gruen-d);margin-top:5px;min-height:14px;font-weight:600;"></div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <button class="btn-dark" onclick="openBoris()" style="width:100%;">🗺 BORIS-BW in neuem Tab öffnen →</button>
+      </div>
+
+      <div class="field">
+        <label>
+          Bodenrichtwert <span class="hint">(aus BORIS-BW eintragen)</span>
+          <span class="tooltip-wrap" tabindex="0">
+            <span class="tooltip-icon">i</span>
+            <span class="tooltip-box">Bodenrichtwert gemäß <strong>§ 196 BauGB</strong>. In BW alle 2 Jahre zum geraden Jahresende ermittelt. Aktueller Stichtag i.d.R. 01.01. des laufenden Jahres.</span>
+          </span>
+        </label>
+        <div class="field-unit">
+          <input type="number" id="bodenrichtwert" placeholder="z. B. 350" min="1" />
+          <span class="unit">€/m²</span>
+        </div>
+      </div>
+
+      <hr class="section-sep" />
+
+      <div class="field-row">
+        <div class="field">
+          <label>Grundstücksfläche <span class="hint">(Kataster)</span></label>
+          <div class="field-unit">
+            <input type="number" id="grundstueck_flaeche" placeholder="z. B. 450" min="1" />
+            <span class="unit">m²</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>
+            GFZ <span class="hint">(optional)</span>
+            <span class="tooltip-wrap" tabindex="0">
+              <span class="tooltip-icon">i</span>
+              <span class="tooltip-box">Die <strong>Grundflächenzahl</strong> gibt an, welcher Anteil des Grundstücks bebaut werden darf. Für die reine Verkehrswertschätzung optional.</span>
+            </span>
+          </label>
+          <input type="number" id="gfz" placeholder="z. B. 0.5" step="0.1" min="0" max="5" />
+        </div>
+      </div>
+
+      <details class="gfz-info">
+        <summary>Wo finde ich die GFZ (Grundflächenzahl)?</summary>
+        <div class="gfz-content">
+          Die <strong>Grundflächenzahl (GFZ)</strong> ist eine Kennzahl des Maßes der baulichen Nutzung nach § 17 BauNVO. Sie ist <em>kein</em> Pflichtfeld für die Wertschätzung, kann den Bodenwert aber plausibilisieren. So ermitteln Sie sie:
+          <ol>
+            <li><strong>Bebauungsplan der Gemeinde:</strong> Die GFZ (bzw. GRZ) ist regelmäßig in den textlichen oder zeichnerischen Festsetzungen des B-Plans angegeben. Abrufbar über das Bauamt oder das Geoportal der Gemeinde.</li>
+            <li><strong>Geoportal Baden-Württemberg:</strong> Unter <a href="https://www.geoportal-bw.de" target="_blank">geoportal-bw.de</a> lassen sich Bebauungspläne vieler Kommunen einsehen.</li>
+            <li><strong>Selbst berechnen:</strong> <code>GFZ = Geschossfläche ÷ Grundstücksfläche</code>. Die Geschossfläche ist die Summe aller Vollgeschossflächen (Außenmaße).</li>
+            <li><strong>Faustwerte:</strong> Reines Wohngebiet ≈ 0,3–0,5; allgemeines Wohngebiet ≈ 0,5–0,8; Kerngebiet bis 3,0.</li>
+          </ol>
+          <strong>Hinweis:</strong> Lassen Sie das Feld leer, wenn die GFZ nicht vorliegt – die Berechnung funktioniert auch ohne sie.
+        </div>
+      </details>
+
+      <div class="field" style="margin-top:20px;">
+        <label>Erschließungszustand</label>
+        <div class="radio-group">
+          <div class="radio-opt selected" onclick="selectRadio(this,'erschliessung','voll')">Vollständig erschlossen</div>
+          <div class="radio-opt" onclick="selectRadio(this,'erschliessung','teil')">Teilerschlossen</div>
+          <div class="radio-opt" onclick="selectRadio(this,'erschliessung','roh')">Rohbauland</div>
+        </div>
+        <input type="hidden" id="erschliessung" value="voll" />
+      </div>
+
+      <div class="nav-row">
+        <button class="btn-back" onclick="goStep(1)">← Zurück</button>
+        <button class="btn-next" onclick="validateStep2()">Weiter →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCHRITT 3 ══ -->
+  <div class="step" id="step-3">
+    <div class="card">
+      <div class="step-eyebrow">Schritt 3 von 4</div>
+      <div class="step-heading" id="step3-heading">Objektdaten</div>
+      <div class="step-sub" id="step3-sub">Angaben zum Gebäude / zur Einheit.</div>
+
+      <div id="verfahren-badge" class="info-box" style="display:none">
+        <span style="font-size:18px;">⚖️</span>
+        <div>
+          <div class="ib-title" id="vi-title">Verfahren</div>
+          <div class="ib-text" id="vi-desc"></div>
+        </div>
+      </div>
+
+      <!-- ETW / EFH -->
+      <div id="fields-wohn" style="display:none">
+        <!-- MEA nur bei ETW -->
+        <div class="field" id="field-mea" style="display:none">
+          <label>
+            Miteigentumsanteil (MEA)
+            <span class="tooltip-wrap" tabindex="0">
+              <span class="tooltip-icon">i</span>
+              <span class="tooltip-box"><strong>Miteigentumsanteil (§ 1 WEG)</strong>: Bruchteil am gemeinschaftlichen Eigentum, dem Sondereigentum zugeordnet. Aus dem Grundbuch (Abt. I) oder der Teilungserklärung. Beispiel: 95/1000 → Zähler 95, Nenner 1000.</span>
+            </span>
+          </label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="field-unit" style="flex:1;"><input type="number" id="mea_zaehler" placeholder="z. B. 95" min="1" max="9999" onchange="updateMeaDisplay()" oninput="updateMeaDisplay()" /><span class="unit" style="right:auto;position:relative;transform:none;padding:0 4px;font-size:18px;color:var(--grau-4);">/</span></div>
+            <div class="field-unit" style="flex:1;"><input type="number" id="mea_nenner" placeholder="z. B. 1000" min="1" max="9999" value="1000" onchange="updateMeaDisplay()" oninput="updateMeaDisplay()" /></div>
+            <div id="mea-display" style="font-size:13px;font-weight:800;color:var(--bw-schwarz);min-width:60px;text-align:right;">–</div>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>
+              Wohnfläche
+              <span class="tooltip-wrap" tabindex="0"><span class="tooltip-icon">i</span>
+                <span class="tooltip-box" id="wohnflaeche-tip">Wohnfläche gemäß WoFlV bzw. DIN 277. <strong>Bei EFH: inklusive Kellergeschoss</strong> (Grundrissangabe aus Bauunterlagen). Der Keller wird über die Checkbox unten kenntlich gemacht – die NHK je m² reduziert sich dann entsprechend.</span>
+              </span>
+            </label>
+            <div class="field-unit"><input type="number" id="wohnflaeche" placeholder="z. B. 150" min="1" /><span class="unit">m²</span></div>
+          </div>
+          <div class="field"><label>Baujahr</label><input type="number" id="baujahr" placeholder="z. B. 1985" min="1850" max="2026" /></div>
+        </div>
+
+        <div class="field">
+          <label>
+            Letzte umfassende Sanierung
+            <span class="hint">(Jahr, leer = keine)</span>
+            <span class="tooltip-wrap" tabindex="0"><span class="tooltip-icon">i</span>
+              <span class="tooltip-box"><strong>Umfassende Sanierung i.S.d. ImmoWertV</strong> liegt vor, wenn mindestens drei der folgenden Gewerke vollständig erneuert wurden: Dach, Fassade/Außenwände, Fenster, Heizungsanlage, Elektro- und Sanitärinstallation, Fußböden. Einzelmaßnahmen (z. B. nur neue Heizung) zählen <em>nicht</em> als umfassende Sanierung. Quelle: SW-RL Anlage 3, Modell zur Ableitung der Restnutzungsdauer.</span>
+            </span>
+          </label>
+          <input type="number" id="sanierung" placeholder="z. B. 2015" min="1950" max="2026" />
+        </div>
+
+        <!-- Keller-Checkbox (nur EFH) -->
+        <div id="field-keller" style="display:none; margin-bottom:16px;">
+          <label class="check-field">
+            <input type="checkbox" id="hat_keller" onchange="updateKellerHint()" />
+            <span class="check-label">
+              <strong>Keller vorhanden</strong> – Wohnfläche enthält Kellergeschoss
+              <span class="tooltip-wrap" tabindex="0"><span class="tooltip-icon">i</span>
+                <span class="tooltip-box"><strong>Keller in der Wohnfläche</strong>: Bei Einbeziehung des Kellers in die Gesamtfläche sind die <strong>NHK je m² geringer</strong>, weil Kellerräume baulich kostengünstiger herzustellen sind als Wohngeschosse (kein Fensterausschnitt, einfacherer Ausbau). Die Mehrkosten des Kellers sind in den reduzierten Flächenkosten bereits enthalten. Quelle: BKI Baukosten 2024, Tabellenwerte EFH mit/ohne Keller.</span>
+              </span>
+            </span>
+          </label>
+          <div id="keller-hint" style="font-size:11px;color:var(--grau-5);margin-left:28px;"></div>
+        </div>
+
+        <!-- Ausstattungsstandard nach NHK 2010 (5 Stufen) -->
+        <div class="field">
+          <label>
+            Ausstattungsstandard
+            <span class="tooltip-wrap" tabindex="0"><span class="tooltip-icon">i</span>
+              <span class="tooltip-box"><strong>Ausstattungsstufen nach NHK 2010</strong> (SW-RL Anlage 1): Die fünf Stufen bestimmen die Normalherstellungskosten (NHK) je m². Grundlage: Baupreisindex BKI 2024 (Anpassungsfaktor ~1,65 ggü. 2010).</span>
+            </span>
+          </label>
+          <div class="radio-group" id="ausstattung-group">
+            <div class="radio-opt" onclick="selectAusstattung(this,'1')">Stufe 1</div>
+            <div class="radio-opt" onclick="selectAusstattung(this,'2')">Stufe 2</div>
+            <div class="radio-opt selected" onclick="selectAusstattung(this,'3')">Stufe 3</div>
+            <div class="radio-opt" onclick="selectAusstattung(this,'4')">Stufe 4</div>
+            <div class="radio-opt" onclick="selectAusstattung(this,'5')">Stufe 5</div>
+          </div>
+          <input type="hidden" id="ausstattung" value="3" />
+          <div class="ausstattung-desc" id="ausstattung-desc">
+            <strong>Stufe 3 – Mittel (Standard):</strong> Ortsübliche Normalausführung. Standard-Sanitär, Kunststofffenster mit Doppelverglasung, übliche Bodenbeläge (Fliesen, Laminat), einfache Einbauküche möglich. Entspricht dem Gros des Altbaubestands und normaler Neubauqualität.
+          </div>
+        </div>
+
+        <div class="field" id="field-etage" style="display:none">
+          <label>Lage im Gebäude</label>
+          <div class="radio-group">
+            <div class="radio-opt" onclick="selectRadio(this,'etage','eg')">Erdgeschoss</div>
+            <div class="radio-opt selected" onclick="selectRadio(this,'etage','mitte')">Mittelgeschoss</div>
+            <div class="radio-opt" onclick="selectRadio(this,'etage','dg')">Dachgeschoss</div>
+          </div>
+          <input type="hidden" id="etage" value="mitte" />
+        </div>
+
+        <div class="field">
+          <label>Zustand</label>
+          <div class="radio-group">
+            <div class="radio-opt" onclick="selectRadio(this,'zustand','mangelhaft')">Mangelhaft</div>
+            <div class="radio-opt" onclick="selectRadio(this,'zustand','mittel')">Mittel</div>
+            <div class="radio-opt selected" onclick="selectRadio(this,'zustand','gut')">Gut</div>
+            <div class="radio-opt" onclick="selectRadio(this,'zustand','sehrgut')">Sehr gut</div>
+          </div>
+          <input type="hidden" id="zustand" value="gut" />
+        </div>
+
+        <div class="field">
+          <label>Stellplatz / Garage</label>
+          <div class="radio-group">
+            <div class="radio-opt selected" onclick="selectRadio(this,'stellplatz','kein')">Kein</div>
+            <div class="radio-opt" onclick="selectRadio(this,'stellplatz','aussen')">Außenstellplatz</div>
+            <div class="radio-opt" onclick="selectRadio(this,'stellplatz','garage')">Garage / TG</div>
+          </div>
+          <input type="hidden" id="stellplatz" value="kein" />
+        </div>
+
+        <!-- Außenanlagen -->
+        <label class="check-field">
+          <input type="checkbox" id="hat_aussenanlagen" />
+          <span class="check-label">
+            <strong>Außenanlagen vorhanden</strong> – Aufschlag +5 % auf den Sachwert
+            <span class="tooltip-wrap" tabindex="0"><span class="tooltip-icon">i</span>
+              <span class="tooltip-box"><strong>Außenanlagen (§ 37 ImmoWertV)</strong>: Gemeint sind ausschließlich <strong>Außenanlagen aus Bauprodukten</strong> – z. B. Terrassen, Wege, Einfriedungen, Carports, Gartengestaltung mit Mauern und Belägen. <em>Nicht</em> gemeint: Bewuchs/Bepflanzung, unversiegelte Rasenflächen oder natürliche Geländegestaltung. Pauschalansatz 5 % des vorläufigen Sachwerts.</span>
+            </span>
+          </span>
+        </label>
+
+        <div class="field">
+          <label>
+            Sachwertfaktor (Marktanpassung)
+            <span class="tooltip-wrap" tabindex="0"><span class="tooltip-icon">i</span>
+              <span class="tooltip-box"><strong>Sachwertfaktor (§ 39 ImmoWertV)</strong>: Korrektur auf Marktpreisniveau. Vom Gutachterausschuss aus Kaufpreisauswertungen abgeleitet. Großstädte BW 1,10–1,30 / Mittelzentren 1,00–1,10 / Ländlich 0,85–1,00. Vorbelegt durch Regionalselektor.</span>
+            </span>
+          </label>
+          <div class="field-unit"><input type="number" id="sachwertfaktor" placeholder="z. B. 1.10" step="0.01" min="0.5" max="2.5" value="1.00" /><span class="unit">Faktor</span></div>
+        </div>
+
+        <hr class="section-sep" />
+        <div class="field">
+          <label>
+            Vergleichswert (Kaufpreis/m²)
+            <span class="tooltip-wrap" tabindex="0"><span class="tooltip-icon">i</span><span class="tooltip-box">Aus <strong>Gutachterausschuss-Berichten</strong>, Marktrecherche oder Mandantenangaben. Leer lassen → nur Sachwert.</span></span>
+          </label>
+          <div class="field-unit"><input type="number" id="vergleichspreis" placeholder="z. B. 3200 (leer = nur Sachwert)" min="100" /><span class="unit">€/m²</span></div>
+        </div>
+      </div>
+
+      <!-- MFH -->
+      <div id="fields-ertrag" style="display:none">
+        <div class="field-row">
+          <div class="field"><label>Wohn-/Nutzfläche gesamt</label><div class="field-unit"><input type="number" id="mfh_flaeche" placeholder="z. B. 600" min="1" /><span class="unit">m²</span></div></div>
+          <div class="field"><label>Baujahr</label><input type="number" id="mfh_baujahr" placeholder="z. B. 1972" min="1850" max="2026" /></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Jahreskaltmiete (Ist) <span class="tooltip-wrap" tabindex="0"><span class="tooltip-icon">i</span><span class="tooltip-box">Tatsächliche jährliche Nettokaltmiete aller Einheiten ohne Nebenkosten. Ausgangsgröße § 28 ImmoWertV.</span></span></label><div class="field-unit"><input type="number" id="jahreskaltmiete" placeholder="z. B. 42000" min="1" /><span class="unit">€/J.</span></div></div>
+          <div class="field"><label>Leerstandsquote <span class="tooltip-wrap" tabindex="0"><span class="tooltip-icon">i</span><span class="tooltip-box">Anteil dauerhaft unvermieteter Fläche. <strong>MFH: typisch 2–5 %</strong> bei normaler Marktlage, bis 10 % bei strukturschwachen Lagen. § 29 Abs. 2 Nr. 3 ImmoWertV.</span></span></label><div class="field-unit"><input type="number" id="leerstand" placeholder="3" min="0" max="50" value="3" /><span class="unit">%</span></div></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Bewirtschaftungskosten <span class="tooltip-wrap" tabindex="0"><span class="tooltip-icon">i</span><span class="tooltip-box"><strong>Bewirtschaftungskosten MFH (§ 29 ImmoWertV)</strong>: Verwaltungskosten (~5–8 %), Instandhaltungskosten (~8–15 %), Mietausfallwagnis (~2–5 %). <strong>Typische Gesamtspanne MFH: 20–30 %</strong> des bereinigten Rohertrags. Ältere Bestände und einfachere Lagen eher 25–30 %, neuere Objekte 20–25 %. Quelle: II. BV, Anlage 3 SW-RL.</span></span></label><div class="field-unit"><input type="number" id="bewirtschaftung" placeholder="25" min="5" max="50" value="25" /><span class="unit">%</span></div></div>
+          <div class="field"><label>Liegenschaftszinssatz <span class="tooltip-wrap" tabindex="0"><span class="tooltip-icon">i</span><span class="tooltip-box"><strong>Liegenschaftszinssatz MFH (§ 33 ImmoWertV)</strong>: Marktübliche Verzinsung des Verkehrswerts. <strong>Spanne MFH BW:</strong> Oberzentren (Stuttgart, Freiburg) 2,5–3,5 % · Mittelzentren 3,5–4,5 % · Ländlicher Raum 4,5–6,0 %. Wird vom Gutachterausschuss aus Kaufpreisauswertungen abgeleitet. Vorbelegt durch Regionalselektor.</span></span></label><div class="field-unit"><input type="number" id="liegenschaftszins" placeholder="4.0" step="0.1" min="1" max="15" value="4.0" /><span class="unit">%</span></div></div>
+        </div>
+        <div class="field"><label>Restnutzungsdauer <span class="tooltip-wrap" tabindex="0"><span class="tooltip-icon">i</span><span class="tooltip-box"><strong>Restnutzungsdauer MFH ( Anlage 3 ImmoWertV)</strong>: Verbleibende Nutzungsdauer bis zum wirtschaftlichen Totalverschleiß. <strong>GND MFH = 80 Jahre.</strong> Typische Spanne: 10–70 Jahre je nach Alter und Sanierungsstand. Umfassende Sanierung verlängert die RND um ca. 30–40 % der GND. Leer lassen = automatisch aus Baujahr berechnet.</span></span></label><div class="field-unit"><input type="number" id="restnutzung" placeholder="automatisch aus Baujahr" min="5" max="80" /><span class="unit">Jahre</span></div></div>
+        <div class="field"><label>Letzte Sanierung <span class="hint">(Jahr, leer = keine)</span></label><input type="number" id="mfh_sanierung" placeholder="z. B. 2010" min="1950" max="2026" /></div>
+      </div>
+
+      <!-- Gewerbe -->
+      <div id="fields-gewerbe" style="display:none">
+        <div class="field-row">
+          <div class="field"><label>Nutzfläche</label><div class="field-unit"><input type="number" id="gew_flaeche" placeholder="z. B. 800" min="1" /><span class="unit">m²</span></div></div>
+          <div class="field"><label>Baujahr</label><input type="number" id="gew_baujahr" placeholder="z. B. 1998" min="1850" max="2026" /></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Jahresnettomiete</label><div class="field-unit"><input type="number" id="gew_miete" placeholder="z. B. 60000" min="1" /><span class="unit">€/J.</span></div></div>
+          <div class="field"><label>Liegenschaftszinssatz <span class="tooltip-wrap" tabindex="0"><span class="tooltip-icon">i</span><span class="tooltip-box"><strong>Liegenschaftszinssatz Gewerbe (§ 33 ImmoWertV)</strong>: Höher als bei Wohnnutzung wegen erhöhtem Mietausfallrisiko. <strong>Spanne BW:</strong> Büro/Praxis 5,0–7,0 % · Handel/Einzelhandel 5,5–7,5 % · Industrie/Lager 6,0–8,5 %. Oberzentren tendenziell unteres, ländlicher Raum oberes Ende.</span></span></label><div class="field-unit"><input type="number" id="gew_zinssatz" placeholder="6.0" step="0.1" min="1" max="15" value="6.0" /><span class="unit">%</span></div></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Restnutzungsdauer <span class="tooltip-wrap" tabindex="0"><span class="tooltip-icon">i</span><span class="tooltip-box"><strong>Restnutzungsdauer Gewerbe ( Anlage 3 ImmoWertV)</strong>: <strong>GND Gewerbe = 40–60 Jahre</strong> je nach Nutzungsart (Büro ~50 J., Lager/Halle ~40 J., Einzelhandel ~40 J.). Typische Spanne: 5–50 Jahre. Stark abhängig von Drittverwendungsfähigkeit.</span></span></label><div class="field-unit"><input type="number" id="gew_rnd" placeholder="z. B. 30" min="5" max="60" /><span class="unit">Jahre</span></div></div>
+          <div class="field"><label>Bewirtschaftungskosten <span class="tooltip-wrap" tabindex="0"><span class="tooltip-icon">i</span><span class="tooltip-box"><strong>Bewirtschaftungskosten Gewerbe</strong>: Je nach Vertragsgestaltung erheblich variabel. Bei Bruttomietvertrag (Vermieter trägt NK): <strong>15–25 %</strong>. Bei NNN-Mietvertrag (Mieter trägt alle NK): <strong>5–10 %</strong>. Enthält Verwaltung, Instandhaltung, Mietausfallwagnis.</span></span></label><div class="field-unit"><input type="number" id="gew_bwk" placeholder="20" min="5" max="50" value="20" /><span class="unit">%</span></div></div>
+        </div>
+      </div>
+
+      <!-- Grundstück -->
+      <div id="fields-grundstueck" style="display:none">
+        <div class="info-box">
+          <span style="font-size:18px;">📋</span>
+          <div><div class="ib-title">Vergleichswertverfahren (Boden)</div><div class="ib-text">Wert = Bodenrichtwert × Fläche ± Korrekturen für Lage und Erschließung. Die Grundstücksfläche wird aus Schritt 2 übernommen. Grundlage: § 196 BauGB i.V.m. ImmoWertV.</div></div>
+        </div>
+        <div class="field">
+          <label>Lagebeschaffenheit (Anpassungsfaktor)</label>
+          <div class="radio-group">
+            <div class="radio-opt" onclick="selectRadio(this,'lage','schlecht')">Ungünstig (−10 %)</div>
+            <div class="radio-opt selected" onclick="selectRadio(this,'lage','normal')">Normal (±0 %)</div>
+            <div class="radio-opt" onclick="selectRadio(this,'lage','gut')">Günstig (+10 %)</div>
+            <div class="radio-opt" onclick="selectRadio(this,'lage','sehr')">Sehr günstig (+20 %)</div>
+          </div>
+          <input type="hidden" id="lage" value="normal" />
+        </div>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn-back" onclick="goStep(2)">← Zurück</button>
+        <button class="btn-next" onclick="validateStep3()">Berechnen →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCHRITT 4 ══ -->
+  <div class="step" id="step-4">
+    <div class="card">
+      <div class="step-eyebrow">Ergebnis</div>
+      <div class="step-heading">ImmoAssess – Ergebnis</div>
+      <div class="step-sub" id="result-datum"></div>
+
+      <div class="result-hero">
+        <div class="result-label">Orientierungswert Verkehrswert (§ 194 BauGB)</div>
+        <div class="result-value" id="result-value">—</div>
+        <div class="result-method" id="result-method"></div>
+
+        <div class="range-bar-wrap">
+          <div class="range-bar-label">Wertspanne ± 15 %</div>
+          <div class="range-bar-track">
+            <div class="range-bar-fill" id="rrb-fill" style="left:10%;width:80%;"></div>
+            <div class="range-bar-marker" id="rrb-marker" style="left:50%;"></div>
+          </div>
+          <div class="range-bar-legs">
+            <span id="rrb-min">—</span>
+            <span class="rl-center" id="rrb-center">—</span>
+            <span id="rrb-max">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-grid" id="result-grid"></div>
+      <div class="result-steps" id="result-steps"></div>
+
+      <div class="result-disclaimer">
+        <div class="rd-title">⚠ Disclaimer – Keine Verbindlichkeit</div>
+        Diese Berechnung ist eine automatisierte Orientierungshilfe für die interne Nutzung im Notariat und erfolgt <strong>ohne Gewähr</strong>. Sie stellt <strong>kein Gutachten</strong> i.S.d. §§ 194 ff. BauGB dar und ersetzt nicht die Einschätzung eines öffentlich bestellten und vereidigten Sachverständigen. Die Ermittlung basiert ausschließlich auf den eingegebenen Parametern ohne Ortsbesichtigung, Aktenlage oder individuelle Grundstücksprüfung. Abweichungen vom tatsächlichen Verkehrswert von ±20 % oder mehr sind möglich. Für verbindliche Wertaussagen ist stets ein zertifizierter Sachverständiger hinzuzuziehen.
+      </div>
+
+      <div class="btn-row-result">
+        <button class="btn-dark" onclick="window.print()">🖨 Drucken / PDF</button>
+        <button class="btn-back" onclick="resetAll()">↩ Neue Berechnung</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="copyright">© <span id="cr-year"></span> <a href="mailto:robert.tinnefeld@notarkammer-bw.de">Robert Tinnefeld</a> · Alle Rechte vorbehalten</div>
+  ImmoAssess · Verkehrswertermittlung für Notarassessoren · ImmoWertV 2021 · Nur zur internen Orientierung · Ohne Gewähr<br>
+  Bodenrichtwerte: <a href="https://www.gutachterausschuesse-bw.de/borisbw/index.html?lang=de" target="_blank">BORIS-BW</a> ·
+  Design angelehnt an das CI des Landes Baden-Württemberg
+</footer>
+
+<script>
+const state = { type: null, step: 1, totalSteps: 4 };
+
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+  state.step = n; updateProgress();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function updateProgress() {
+  const pct = Math.round((state.step / state.totalSteps) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = `Schritt ${state.step} von ${state.totalSteps}`;
+  document.getElementById('progress-pct').textContent = pct + ' %';
+  renderDots();
+}
+function renderDots() {
+  const c = document.getElementById('step-dots'); c.innerHTML = '';
+  for (let i = 1; i <= state.totalSteps; i++) {
+    const d = document.createElement('div');
+    d.className = 'step-dot' + (i < state.step ? ' done' : i === state.step ? ' active' : '');
+    c.appendChild(d);
+  }
+}
+
+function selectType(btn) {
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  state.type = btn.dataset.type;
+  document.getElementById('btn-1-next').disabled = false;
+  prepareStep3();
+}
+
+/* ══ BORIS-BW – Direktlink ══ */
+function openBoris() {
+  window.open('https://www.gutachterausschuesse-bw.de/borisbw/index.html?lang=de', '_blank');
+}
+
+/* ══ REGIONALTABELLE BW (Grundstücksmarktberichte 2024) ══
+   Quellen: GMB Stuttgart, Karlsruhe, Freiburg, Heidelberg, Mannheim, Ulm,
+            Heilbronn, Tübingen, Reutlingen, Pforzheim, Konstanz, Ludwigsburg
+   liz_mfh  = Liegenschaftszinssatz MFH (%)
+   liz_gew  = Liegenschaftszinssatz Gewerbe (%)
+   swf_efh  = Sachwertfaktor EFH (Faktor)
+   swf_etw  = Sachwertfaktor ETW (Faktor)
+   bwk_mfh  = Bewirtschaftungskosten MFH (%)
+   Hinweis: Bandbreitenmitte; tatsächliche GA-Werte können abweichen.
+══════════════════════════════════════════════════════════════ */
+const REGIONAL_DATA = {
+  stuttgart:        { liz_mfh:2.5, liz_gew:5.0, swf_efh:1.25, swf_etw:1.10, bwk_mfh:22, label:'Stuttgart' },
+  karlsruhe:        { liz_mfh:3.0, liz_gew:5.5, swf_efh:1.20, swf_etw:1.05, bwk_mfh:23, label:'Karlsruhe' },
+  freiburg:         { liz_mfh:2.8, liz_gew:5.2, swf_efh:1.25, swf_etw:1.10, bwk_mfh:22, label:'Freiburg i.Br.' },
+  mannheim:         { liz_mfh:3.2, liz_gew:5.5, swf_efh:1.10, swf_etw:1.00, bwk_mfh:23, label:'Mannheim' },
+  heidelberg:       { liz_mfh:2.8, liz_gew:5.0, swf_efh:1.20, swf_etw:1.10, bwk_mfh:22, label:'Heidelberg' },
+  ulm:              { liz_mfh:3.5, liz_gew:6.0, swf_efh:1.15, swf_etw:1.00, bwk_mfh:24, label:'Ulm' },
+  heilbronn:        { liz_mfh:3.5, liz_gew:6.0, swf_efh:1.10, swf_etw:1.00, bwk_mfh:24, label:'Heilbronn' },
+  tuebingen:        { liz_mfh:2.9, liz_gew:5.5, swf_efh:1.20, swf_etw:1.05, bwk_mfh:22, label:'Tübingen' },
+  reutlingen:       { liz_mfh:3.3, liz_gew:6.0, swf_efh:1.10, swf_etw:1.00, bwk_mfh:23, label:'Reutlingen' },
+  pforzheim:        { liz_mfh:3.8, liz_gew:6.5, swf_efh:1.00, swf_etw:0.95, bwk_mfh:25, label:'Pforzheim' },
+  konstanz:         { liz_mfh:3.0, liz_gew:5.5, swf_efh:1.20, swf_etw:1.05, bwk_mfh:22, label:'Konstanz' },
+  ludwigsburg:      { liz_mfh:2.8, liz_gew:5.0, swf_efh:1.20, swf_etw:1.05, bwk_mfh:22, label:'Ludwigsburg' },
+  freiburg_region:  { liz_mfh:3.2, liz_gew:5.5, swf_efh:1.15, swf_etw:1.00, bwk_mfh:23, label:'Freiburg (Umland)' },
+  mittel_verdicht:  { liz_mfh:3.8, liz_gew:6.5, swf_efh:1.05, swf_etw:0.98, bwk_mfh:25, label:'Mittelzentrum / Verdichtungsraum' },
+  mittel_laendlich: { liz_mfh:4.2, liz_gew:7.0, swf_efh:0.98, swf_etw:0.93, bwk_mfh:26, label:'Mittelzentrum / ländlicher Raum' },
+  laendlich_gut:    { liz_mfh:4.5, liz_gew:7.5, swf_efh:0.95, swf_etw:0.90, bwk_mfh:27, label:'Ländlich (gute Lage)' },
+  laendlich_normal: { liz_mfh:5.0, liz_gew:8.0, swf_efh:0.88, swf_etw:0.85, bwk_mfh:28, label:'Ländlich (normale Lage)' },
+};
+
+function applyRegionalDefaults() {
+  const key = document.getElementById('region_bw').value;
+  const hint = document.getElementById('region-hint');
+  if (!key || !REGIONAL_DATA[key]) { hint.textContent = ''; return; }
+  const d = REGIONAL_DATA[key];
+  const t = state.type;
+  // Liegenschaftszinssatz
+  const lizEl_mfh = document.getElementById('liegenschaftszins');
+  const lizEl_gew = document.getElementById('gew_zinssatz');
+  if (lizEl_mfh) lizEl_mfh.value = d.liz_mfh.toFixed(1);
+  if (lizEl_gew) lizEl_gew.value = d.liz_gew.toFixed(1);
+  // Sachwertfaktor
+  const swfEl = document.getElementById('sachwertfaktor');
+  if (swfEl) {
+    const swf = (t === 'etw') ? d.swf_etw : d.swf_efh;
+    swfEl.value = swf.toFixed(2);
+  }
+  // BWK
+  const bwkEl = document.getElementById('bewirtschaftung');
+  if (bwkEl) bwkEl.value = d.bwk_mfh;
+  hint.textContent = `✓ Regionalwerte für ${d.label} vorbelegt (GMB BW 2024) – bitte ggf. anpassen`;
+}
+
+function updateMeaDisplay() {
+  const z = parseFloat(document.getElementById('mea_zaehler').value) || 0;
+  const n = parseFloat(document.getElementById('mea_nenner').value) || 1000;
+  const pct = n > 0 ? (z / n * 100).toFixed(2) : '0.00';
+  document.getElementById('mea-display').textContent = n > 0 && z > 0 ? `= ${pct} %` : '–';
+}
+
+/* ══ AUSSTATTUNGSSTUFEN NHK 2010 (BKI-Index 2024) ══ */
+const AUSSTATTUNG_DESC = {
+  '1': { title:'Stufe 1 – Einfachst', text:'Einfachste Bauausführung ohne besondere Ansprüche. Einfachste Sanitärausstattung (kein Wannenbad), kein Verputz, einfachste Böden. Selten im heutigen Neubau, findet sich bei älteren Kleingebäuden, Wochenendhäusern, Baracken.' },
+  '2': { title:'Stufe 2 – Einfach', text:'Zweckmäßige, einfache Ausführung. Einfaches Bad/WC, einfache Elektroinstallation, Linoleum oder einfache Fliesen, einfache Innenputzarbeiten, einfache Fenster. Entspricht älterem Sozialwohnungsbau, einfachen Mietobjekten.' },
+  '3': { title:'Stufe 3 – Mittel (Standard)', text:'Ortsübliche Normalausführung. Standard-Bad/WC, Kunststofffenster mit Doppelverglasung, übliche Bodenbeläge (Fliesen, Laminat, Parkett), normale Elektro- und Heizungsinstallation. Entspricht dem Gros des Altbaubestands und normaler Neubauqualität.' },
+  '4': { title:'Stufe 4 – Gehoben', text:'Hochwertige Bauausführung. Hochwertiges Bad (ggf. zweites Bad), hochwertige Böden (Parkett, Naturstein), moderne Heizungsanlage (ggf. Fußbodenheizung), Wärmedämmverbundsystem, hochwertige Fenster. Entspricht gutem Neubaustandard und sanierten Objekten der gehobenen Klasse.' },
+  '5': { title:'Stufe 5 – Stark gehoben', text:'Besonders aufwändige oder individuelle Ausführung. Repräsentative Architektur, Natursteinböden, Smart-Home-Steuerung, Schwimmbad oder Sauna, Doppel-Carport mit Ladepunkt, individuelle Sonderwünsche. Entspricht Villenbauten und luxuriösen Neubauten.' },
+};
+
+function selectAusstattung(btn, val) {
+  document.getElementById('ausstattung-group').querySelectorAll('.radio-opt').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('ausstattung').value = val;
+  const d = AUSSTATTUNG_DESC[val];
+  document.getElementById('ausstattung-desc').innerHTML = `<strong>${d.title}:</strong> ${d.text}`;
+  updateKellerHint();
+}
+
+function updateKellerHint() {
+  const hint = document.getElementById('keller-hint');
+  if (!hint) return;
+  const au = document.getElementById('ausstattung').value;
+  const hatKeller = document.getElementById('hat_keller')?.checked;
+  // NHK table for hint
+  const nhkT = { '1':{ok:1050,mk:900},'2':{ok:1400,mk:1200},'3':{ok:1800,mk:1550},'4':{ok:2350,mk:2050},'5':{ok:3100,mk:2750} };
+  const v = nhkT[au]||nhkT['3'];
+  if (hatKeller) {
+    hint.textContent = `→ NHK mit Keller: ${v.mk.toLocaleString('de-DE')} €/m² (statt ${v.ok.toLocaleString('de-DE')} €/m² ohne Keller)`;
+  } else {
+    hint.textContent = `→ NHK ohne Keller: ${v.ok.toLocaleString('de-DE')} €/m²`;
+  }
+}
+
+function validateStep2() {
+  const brw = parseFloat(document.getElementById('bodenrichtwert').value);
+  const fl  = parseFloat(document.getElementById('grundstueck_flaeche').value);
+  if (!brw || brw <= 0) { alert('Bitte Bodenrichtwert eintragen (aus BORIS-BW ermitteln).'); return; }
+  if (!fl  || fl  <= 0) { alert('Bitte Grundstücksfläche eintragen.'); return; }
+  goStep(3);
+}
+
+function prepareStep3() {
+  const type = state.type;
+  const badges = {
+    etw:['Vergleichswertverfahren + Sachwertverfahren (§§ 24–26, 35–39 ImmoWertV)','Vorrangig Vergleichswertverfahren. Sachwert als Plausibilisierung.'],
+    efh:['Vergleichswertverfahren + Sachwertverfahren (§§ 24–26, 35–39 ImmoWertV)','Kombination beider Verfahren; Vergleichswert bei guter Marktdatenlage vorrangig.'],
+    mfh:['Ertragswertverfahren (§§ 27–34 ImmoWertV)','Basis: nachhaltig erzielbare Miete, Bewirtschaftungskosten, Liegenschaftszinssatz.'],
+    gewerbe:['Ertragswertverfahren + Sachwert (§§ 27–34, 35–45 ImmoWertV)','Ertragswert vorrangig; Sachwert zur Plausibilisierung.'],
+    grundstueck:['Vergleichswertverfahren / Bodenrichtwert (§ 196 BauGB)','Wert = Bodenrichtwert × Fläche ± Lage-/Zuschnittskorrekturen.'],
+  };
+  const headings = {etw:'Angaben zur Eigentumswohnung',efh:'Angaben zum Ein-/Zweifamilienhaus',mfh:'Angaben zum Mehrfamilienhaus',gewerbe:'Angaben zum Gewerbeobjekt',grundstueck:'Angaben zum Grundstück'};
+  document.getElementById('step3-heading').textContent = headings[type] || 'Objektdaten';
+  const badge = document.getElementById('verfahren-badge');
+  if (badges[type]) {
+    document.getElementById('vi-title').textContent = badges[type][0];
+    document.getElementById('vi-desc').textContent  = badges[type][1];
+    badge.style.display = 'flex';
+  }
+  document.getElementById('fields-wohn').style.display       = (type==='etw'||type==='efh')?'block':'none';
+  document.getElementById('fields-ertrag').style.display     = (type==='mfh')?'block':'none';
+  document.getElementById('fields-gewerbe').style.display    = (type==='gewerbe')?'block':'none';
+  document.getElementById('fields-grundstueck').style.display= (type==='grundstueck')?'block':'none';
+  document.getElementById('field-etage').style.display       = (type==='etw')?'block':'none';
+  document.getElementById('field-mea').style.display         = (type==='etw')?'block':'none';
+  document.getElementById('field-keller').style.display      = (type==='efh')?'block':'none';
+  // Reset Keller-Checkbox when switching type
+  const kellerCb = document.getElementById('hat_keller');
+  if (kellerCb && type !== 'efh') kellerCb.checked = false;
+}
+
+function validateStep3() {
+  const t = state.type;
+  if (t==='etw'||t==='efh') {
+    if (!parseFloat(document.getElementById('wohnflaeche').value)) { alert('Bitte Wohnfläche eingeben.'); return; }
+    const bj = parseInt(document.getElementById('baujahr').value);
+    if (!bj||bj<1850||bj>2026) { alert('Bitte gültiges Baujahr eingeben.'); return; }
+    if (t==='etw') {
+      const z = parseFloat(document.getElementById('mea_zaehler').value)||0;
+      const n = parseFloat(document.getElementById('mea_nenner').value)||0;
+      if (!z||!n||z>=n) { alert('Bitte gültigen Miteigentumsanteil eingeben (Zähler muss kleiner als Nenner sein, z. B. 95/1000).'); return; }
+    }
+  } else if (t==='mfh') {
+    if (!parseFloat(document.getElementById('mfh_flaeche').value)||!parseInt(document.getElementById('mfh_baujahr').value)||!parseFloat(document.getElementById('jahreskaltmiete').value)) { alert('Bitte Fläche, Baujahr und Jahreskaltmiete ausfüllen.'); return; }
+  } else if (t==='gewerbe') {
+    if (!parseFloat(document.getElementById('gew_flaeche').value)||!parseInt(document.getElementById('gew_baujahr').value)||!parseFloat(document.getElementById('gew_miete').value)) { alert('Bitte Fläche, Baujahr und Jahresnettomiete ausfüllen.'); return; }
+  }
+  berechnen(); goStep(4);
+}
+
+// Regionalwerte noch einmal anwenden, falls Region in Schritt 2 gewählt wurde
+// (Felder existieren erst ab Schritt 3 im DOM – daher beim Berechnen-Klick nochmals)
+function applyRegionalOnCalc() {
+  applyRegionalDefaults();
+}
+
+function selectRadio(btn, fieldId, value) {
+  btn.parentElement.querySelectorAll('.radio-opt').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById(fieldId).value = value;
+}
+
+function berechnen() {
+  const brw = parseFloat(document.getElementById('bodenrichtwert').value)||0;
+  const gf  = parseFloat(document.getElementById('grundstueck_flaeche').value)||0;
+  const er  = document.getElementById('erschliessung').value;
+  const eF  = er==='voll'?1.0:er==='teil'?0.85:0.6;
+  const bodenwert = brw*gf*eF;
+  let r;
+  switch(state.type) {
+    case 'etw': case 'efh': r = calcSachVergleich(bodenwert); break;
+    case 'mfh':    r = calcErtrag(bodenwert); break;
+    case 'gewerbe':r = calcGewerbe(bodenwert); break;
+    case 'grundstueck': r = calcGrundstueck(brw, gf); break;
+  }
+  renderResult(r);
+}
+
+function calcSachVergleich(bodenwertGesamt) {
+  const t = state.type;
+  const wf = parseFloat(document.getElementById('wohnflaeche').value);
+  const bj = parseInt(document.getElementById('baujahr').value);
+  const san = parseInt(document.getElementById('sanierung').value)||0;
+  const au = document.getElementById('ausstattung').value;
+  const zu = document.getElementById('zustand').value;
+  const et = document.getElementById('etage').value;
+  const sp = document.getElementById('stellplatz').value;
+  const vp = parseFloat(document.getElementById('vergleichspreis').value)||0;
+  const swf = parseFloat(document.getElementById('sachwertfaktor').value)||1.0;
+  const heute = new Date().getFullYear();
+  const nhkTable = {
+    // Stufe: { ohneKeller, mitKeller } – BKI-Baupreisindex 2024, Basis NHK 2010 SW-RL Anlage 1
+    '1':{ ok:1050, mk: 900 },
+    '2':{ ok:1400, mk:1200 },
+    '3':{ ok:1800, mk:1550 },
+    '4':{ ok:2350, mk:2050 },
+    '5':{ ok:3100, mk:2750 },
+    // ETW hat keine Kellerdifferenzierung, nutzt ok-Wert
+    etw:{ '1':1000,'2':1350,'3':1750,'4':2250,'5':3000 },
+  };
+  const hatKeller = t==='efh' && (document.getElementById('hat_keller')?.checked||false);
+  const hatAussen = document.getElementById('hat_aussenanlagen')?.checked||false;
+  let nhk;
+  if (t==='etw') {
+    nhk = nhkTable.etw[au] || 1750;
+  } else {
+    nhk = hatKeller ? (nhkTable[au]?.mk||1550) : (nhkTable[au]?.ok||1800);
+  }
+
+  // ── MEA-korrigierter Bodenwert für ETW ──
+  let bodenwert = bodenwertGesamt;
+  let meaZaehler = 0, meaNenner = 1000, meaFaktor = 1.0, bodenwertLabel = 'Bodenwert (BRW × Fläche × Erschl.)';
+  if (t === 'etw') {
+    meaZaehler = parseFloat(document.getElementById('mea_zaehler').value)||0;
+    meaNenner  = parseFloat(document.getElementById('mea_nenner').value)||1000;
+    meaFaktor  = meaNenner > 0 && meaZaehler > 0 ? meaZaehler / meaNenner : 1.0;
+    bodenwert  = bodenwertGesamt * meaFaktor;
+    bodenwertLabel = `Bodenwert (BRW × Fläche × Erschl. × MEA ${meaZaehler}/${meaNenner})`;
+  }
+
+  const gnd = t==='etw'?80:100;
+  let effA = heute-bj;
+  if (san>bj&&san<=heute) effA = Math.round((san-bj)*0.3+(heute-san));
+  const rnd = Math.max(gnd-effA,10), awf = rnd/gnd;
+  let zw = nhk*wf*awf;
+  if (t==='efh') zw *= 1.08;
+  zw *= ({mangelhaft:0.8,mittel:0.9,gut:1.0,sehrgut:1.1}[zu]||1.0);
+  if (t==='etw') zw *= ({eg:0.93,mitte:1.0,dg:1.04}[et]||1.0);
+  const spw = sp==='garage'?18000:sp==='aussen'?5000:0;
+  const swV = bodenwert+zw+spw;
+  const swMarkt = swV * swf;
+  const aussenAufschlag = hatAussen ? swMarkt * 0.05 : 0;
+  const sw = swMarkt + aussenAufschlag;
+
+  let vw, methode, vergleichswert=0;
+  if (vp>0) { vergleichswert = vp*wf+spw; vw = vergleichswert*0.6+sw*0.4; methode='Vergleichswert (60 %) + Sachwert (40 %)'; }
+  else       { vw = sw; methode='Sachwertverfahren (kein Vergleichspreis eingegeben)'; }
+
+  const steps = [
+    {label: bodenwertLabel, val:bodenwert,
+      info: t==='etw'
+        ? `<strong>Anteiliger Bodenwert (ETW)</strong> = Bodenrichtwert × Gesamtgrundstücksfläche × Erschließungsfaktor × MEA (${meaZaehler}/${meaNenner} = ${(meaFaktor*100).toFixed(2)} %). Der MEA ist dem Grundbuch (Abt. I) oder der Teilungserklärung zu entnehmen. Grundlage: § 26 ImmoWertV i.V.m. § 1 WEG.`
+        : '<strong>Bodenwert</strong> = Bodenrichtwert (€/m²) × Grundstücksfläche × Erschließungsfaktor. Basis: § 26 ImmoWertV.'},
+    ...(t==='etw' ? [{label:`Gesamtbodenwert Grundstück (vor MEA)`, val:bodenwertGesamt,
+      info:'<strong>Gesamtbodenwert</strong> des Grundstücks vor Anwendung des Miteigentumsanteils. = BRW × Gesamtfläche × Erschließungsfaktor.'}] : []),
+    {label:`NHK Stufe ${au} (${nhk.toLocaleString('de-DE')} €/m²${hatKeller?' inkl. Keller':''} × ${wf} m²)`,val:nhk*wf,
+      info:`<strong>Normalherstellungskosten (NHK) Stufe ${au}</strong>: ${hatKeller?nhk.toLocaleString('de-DE')+' €/m² <em>mit Keller</em> (geringer als ohne Keller, da Kellergeschoss kostengünstiger herstellbar ist)':nhk.toLocaleString('de-DE')+' €/m² <em>ohne Keller</em>'}. Basis: NHK 2010 (SW-RL Anlage 1), adjustiert mit BKI-Baupreisindex 2024 (~Faktor 1,55 ggü. 2010). Grundlage: § 36 Abs. 2 i.V.m. Anlage 4 ImmoWertV.`},
+    {label:`Alterswertminderung (AWF ${(awf*100).toFixed(0)} %)`,val:-(nhk*wf*(1-awf)),
+      info:`<strong>Alterswertminderung</strong>: Wertminderung durch Alter und Abnutzung. AWF = RND (${rnd} J.) ÷ GND (${gnd} J.). Sanierung verlängert die Restnutzungsdauer rechnerisch. Grundlage: § 38 ImmoWertV.`},
+    {label:'Zeitwert Gebäude (inkl. Zustands-/Lagekorrekturen)',val:zw,
+      info:'<strong>Zeitwert Gebäude</strong> = NHK × AWF × Zustandsfaktor (mangelhaft 0,80 / mittel 0,90 / gut 1,00 / sehr gut 1,10)' + (t==='etw' ? ' × Etagenfaktor (EG 0,93 / Mitte 1,00 / DG 1,04).' : '.')},
+    ...(spw?[{label:'Stellplatz / Garage',val:spw,
+      info:'<strong>Stellplatz / Garage</strong>: Pauschalwert. Außenstellplatz ≈ 5.000 €, Garage/TG ≈ 18.000 €. Regional abweichend.'}]:[]),
+    {label:'Sachwert vorläufig (Bodenwert + Zeitwert)',val:swV,
+      info:'<strong>Vorläufiger Sachwert</strong> = anteiliger Bodenwert + Zeitwert Gebäude + Stellplatzwert. Noch ohne Marktanpassung (reiner Substanzwert). Grundlage: §§ 35–39 ImmoWertV.'},
+    {label:`Sachwertfaktor (Marktanpassung ×${swf.toFixed(2)})`,val:swMarkt-swV,
+      info:`<strong>Sachwertfaktor (${swf.toFixed(2)})</strong>: Korrektur auf Marktpreisniveau. Vom Gutachterausschuss aus Kaufpreisauswertungen abgeleitet (§ 39 ImmoWertV). Regionalwert – bitte mit aktuellem GA-Bericht abgleichen.`},
+    ...(hatAussen?[{label:'Außenanlagen (+5 % auf Sachwert)',val:aussenAufschlag,
+      info:'<strong>Außenanlagen (§ 37 ImmoWertV)</strong>: Pauschalaufschlag 5 % auf den marktangepassten Sachwert für Außenanlagen aus Bauprodukten (Terrassen, Wege, Einfriedungen, Carports etc.).'}]:[]),
+    {label:'→ Sachwert marktangepasst',val:sw,bold:true,
+      info:'<strong>Marktangepasster Sachwert</strong>: Endwert des Sachwertverfahrens § 39 ImmoWertV. Bildet allein den Verkehrswert, wenn kein Vergleichspreis vorliegt.'},
+    ...(vp>0?[{label:`→ Vergleichswert (${vp} €/m² × ${wf} m²)`,val:vergleichswert,bold:true,
+      info:'<strong>Vergleichswert</strong>: Marktpreis vergleichbarer Objekte je m² × Wohnfläche. Vorrangiges Verfahren nach § 15 ImmoWertV bei ausreichender Datenlage.'}]:[]),
+    {label:'→ Orientierungswert Verkehrswert',val:vw,bold:true,
+      info:'<strong>Orientierungswert Verkehrswert</strong>: Gewichtetes Mittel aus Vergleichswert (60 %) und Sachwert (40 %) bei vorhandenem Vergleichspreis; sonst = marktangepasster Sachwert. Gerundet auf 1.000 €. Ohne Gewähr.'},
+  ];
+  const gridData = [
+    {label:'Wohnfläche',val:fmt(wf,'m²')},
+    {label:'Baujahr / eff. Alter',val:`${bj} / ${effA} J.`},
+    {label:'Restnutzungsdauer',val:rnd+' Jahre'},
+    ...(t==='etw'?[{label:'Miteigentumsanteil',val:`${meaZaehler}/${meaNenner} (${(meaFaktor*100).toFixed(2)} %)`}]:[]),
+    {label:'Anteil. Bodenwert',val:fmtEur(bodenwert)},
+    {label:'Zeitwert Gebäude',val:fmtEur(zw)},
+    {label:'Sachwertfaktor',val:swf.toFixed(2)},
+    {label:'Sachwert marktangepasst',val:fmtEur(sw)},
+    ...(vp>0?[{label:'Vergleichswert',val:fmtEur(vergleichswert)}]:[]),
+  ];
+  return {vw,methode,steps,gridData};
+}
+
+function calcErtrag(bodenwert) {
+  const fl=parseFloat(document.getElementById('mfh_flaeche').value), bj=parseInt(document.getElementById('mfh_baujahr').value);
+  const san=parseInt(document.getElementById('mfh_sanierung').value)||0, jkm=parseFloat(document.getElementById('jahreskaltmiete').value);
+  const ls=parseFloat(document.getElementById('leerstand').value)/100, bwk=parseFloat(document.getElementById('bewirtschaftung').value)/100;
+  const iz=parseFloat(document.getElementById('liegenschaftszins').value)/100, heute=new Date().getFullYear();
+  let rnd=parseFloat(document.getElementById('restnutzung').value)||0;
+  if (!rnd) { let a=heute-bj; if(san>bj&&san<=heute)a=Math.round((san-bj)*0.3+(heute-san)); rnd=Math.max(80-a,10); }
+  const jre=jkm*(1-ls), bwkA=jre*bwk, jreg=jre-bwkA, bwvz=bodenwert*iz, jreg2=jreg-bwvz;
+  const rbf=(1-Math.pow(1+iz,-rnd))/iz, ewG=jreg2*rbf, vw=ewG+bodenwert;
+  const steps=[
+    {label:'Jahresrohertrag (Ist)',val:jkm,
+      info:'<strong>Jahresrohertrag (Ist-Miete)</strong>: Tatsächlich erzielte jährliche Nettokaltmiete aller Einheiten ohne Nebenkosten. Ausgangsgröße des Ertragswertverfahrens nach § 28 ImmoWertV.'},
+    {label:`− Leerstand (${(ls*100).toFixed(1)} %)`,val:-(jkm*ls),
+      info:'<strong>Leerstandskorrektur</strong>: Abzug für nicht vermietete Flächen. Typisch 2–5 % bei normaler Marktlage. Berücksichtigt das strukturelle Mietausfallrisiko nach § 29 Abs. 2 Nr. 3 ImmoWertV.'},
+    {label:'Jahresrohertrag bereinigt',val:jre,bold:true,
+      info:'<strong>Bereinigter Jahresrohertrag</strong>: Jahresrohertrag abzüglich Leerstandskorrektur. Entspricht der nachhaltig erzielbaren Bruttomiete.'},
+    {label:`− BWK (${(bwk*100).toFixed(0)} %)`,val:-bwkA,
+      info:'<strong>Bewirtschaftungskosten (BWK)</strong>: Laufende Kosten für Verwaltung, Instandhaltung und Mietausfallwagnis. Typisch 20–30 % des bereinigten Rohertrags. Grundlage: § 29 ImmoWertV; Richtwerte aus der II. BV.'},
+    {label:'→ Jahresreinertrag gesamt',val:jreg,bold:true,
+      info:'<strong>Jahresreinertrag gesamt</strong>: Bereinigter Rohertrag abzüglich Bewirtschaftungskosten. Entspricht dem Nettoertrag aus der Immobilie insgesamt (Boden + Gebäude).'},
+    {label:`− Bodenwertverzinsung (${(iz*100).toFixed(1)} %)`,val:-bwvz,
+      info:`<strong>Bodenwertverzinsung</strong>: Fiktiver Zinsertrag auf den Bodenwert (${fmtEur(bodenwert)} × ${(iz*100).toFixed(1)} %). Der Boden wird als unverzinsliches Dauerkapital behandelt; sein Zinsanteil wird herausgerechnet, um den gebäudespezifischen Reinertrag zu isolieren. Grundlage: § 31 ImmoWertV.`},
+    {label:'→ Jahresreinertrag Gebäude',val:jreg2,bold:true,
+      info:'<strong>Jahresreinertrag Gebäude</strong>: Reinertrag der baulichen Anlage nach Abzug der Bodenwertverzinsung. Nur dieser Anteil wird über den Rentenbarwertfaktor kapitalisiert.'},
+    {label:`RBF (n=${rnd}J., i=${(iz*100).toFixed(1)} %)`,val:rbf,isRatio:true,
+      info:`<strong>Rentenbarwertfaktor (RBF)</strong>: Kapitalisierungsfaktor für eine endliche Rente. Formel: (1 − (1+i)^−n) / i. Mit n = ${rnd} Jahren Restnutzungsdauer und i = ${(iz*100).toFixed(1)} % Liegenschaftszinssatz. Gibt an, das Wievielfache des Jahresreinertrags der Gebäudewert beträgt. Grundlage: § 34 ImmoWertV.`},
+    {label:'Ertragswert Gebäude',val:ewG,
+      info:'<strong>Ertragswert Gebäude</strong> = Jahresreinertrag Gebäude × Rentenbarwertfaktor. Entspricht dem kapitalisierten Wert aller zukünftigen Reinerträge der baulichen Anlage.'},
+    {label:'+ Bodenwert',val:bodenwert,
+      info:'<strong>Bodenwert</strong>: Wird dem Ertragswert des Gebäudes addiert, da der Boden als ewiger Wert (ohne Alterswertminderung) separat angesetzt wird. Grundlage: § 39 ImmoWertV.'},
+    {label:'→ Orientierungswert Ertragswert',val:vw,bold:true,
+      info:'<strong>Ertragswert (Orientierungswert)</strong> = Ertragswert Gebäude + Bodenwert. Entspricht dem Verkehrswert nach dem Ertragswertverfahren gemäß §§ 27–34 ImmoWertV. Gerundet auf 1.000 €. Ohne Gewähr.'},
+  ];
+  const gridData=[
+    {label:'Gesamtfläche',val:fmt(fl,'m²')},{label:'Baujahr / RND',val:`${bj} / ${rnd} J.`},
+    {label:'Liegenschaftszins',val:(iz*100).toFixed(1)+' %'},{label:'Jahresreinertrag',val:fmtEur(jreg)},
+    {label:'Bodenwert',val:fmtEur(bodenwert)},{label:'Ertragswert Gebäude',val:fmtEur(ewG)},
+  ];
+  return {vw,methode:'Ertragswertverfahren (§§ 27–34 ImmoWertV)',steps,gridData};
+}
+
+function calcGewerbe(bodenwert) {
+  const fl=parseFloat(document.getElementById('gew_flaeche').value), bj=parseInt(document.getElementById('gew_baujahr').value);
+  const jm=parseFloat(document.getElementById('gew_miete').value), iz=parseFloat(document.getElementById('gew_zinssatz').value)/100;
+  const rnd=parseFloat(document.getElementById('gew_rnd').value)||30, bwk=parseFloat(document.getElementById('gew_bwk').value)/100, heute=new Date().getFullYear();
+  const jreg=jm*(1-bwk), bwvz=bodenwert*iz, jreg2=jreg-bwvz, rbf=(1-Math.pow(1+iz,-rnd))/iz, ewG=jreg2*rbf, ew=ewG+bodenwert;
+  const zw=1400*fl*Math.max((60-(heute-bj))/60,0.2), sw=bodenwert+zw, vw=ew*0.6+sw*0.4;
+  const steps=[
+    {label:'Jahresnettomiete',val:jm,
+      info:'<strong>Jahresnettomiete</strong>: Vertraglich vereinbarte jährliche Nettokaltmiete (ohne Nebenkosten/Betriebskosten). Ausgangsgröße des Ertragswertverfahrens für Gewerbeobjekte.'},
+    {label:`− BWK (${(bwk*100).toFixed(0)} %)`,val:-(jm*bwk),
+      info:'<strong>Bewirtschaftungskosten</strong>: Verwaltung, Instandhaltung, Versicherungen. Bei Gewerbeobjekten oft 15–25 %; je nach Vertragsgestaltung (NNN-Mietvertrag) kann ein Großteil auf den Mieter abgewälzt sein.'},
+    {label:'→ Jahresreinertrag gesamt',val:jreg,bold:true,
+      info:'<strong>Jahresreinertrag gesamt</strong>: Nettomiete abzüglich Bewirtschaftungskosten. Entspricht dem Nettoertrag aus der gesamten Immobilie (Boden + Gebäude).'},
+    {label:'− Bodenwertverzinsung',val:-bwvz,
+      info:`<strong>Bodenwertverzinsung</strong>: ${fmtEur(bodenwert)} × ${(iz*100).toFixed(1)} % Liegenschaftszinssatz. Isoliert den gebäudespezifischen Reinertrag vom Bodenanteil. Grundlage: § 31 ImmoWertV.`},
+    {label:'→ Jahresreinertrag Gebäude',val:jreg2,bold:true,
+      info:'<strong>Jahresreinertrag Gebäude</strong>: Reinertrag nach Abzug der Bodenwertverzinsung. Nur dieser Betrag wird über den RBF kapitalisiert.'},
+    {label:`RBF (n=${rnd}J., i=${(iz*100).toFixed(1)} %)`,val:rbf,isRatio:true,
+      info:`<strong>Rentenbarwertfaktor (RBF)</strong>: (1 − (1+i)^−n) / i mit n = ${rnd} J. und i = ${(iz*100).toFixed(1)} %. Kapitalisierungsfaktor für den gebäudebezogenen Reinertrag über die Restnutzungsdauer.`},
+    {label:'→ Ertragswert',val:ew,bold:true,
+      info:'<strong>Ertragswert</strong> = Jahresreinertrag Gebäude × RBF + Bodenwert. Vorrangiges Verfahren bei vermieteten Gewerbeobjekten.'},
+    {label:'→ Sachwert (vereinfacht)',val:sw,bold:true,
+      info:'<strong>Sachwert (vereinfacht)</strong>: Bodenwert + Zeitwert Gebäude auf Basis pauschaler NHK 1.400 €/m² und linearer Abschreibung über 60 Jahre GND. Dient hier ausschließlich der Plausibilisierung des Ertragswerts.'},
+    {label:'Orientierungswert (60% EW + 40% SW)',val:vw,bold:true,
+      info:'<strong>Orientierungswert</strong>: Gewichtetes Mittel aus Ertragswert (60 %) und Sachwert (40 %). Bei Gewerbeobjekten hat der Ertragswert Vorrang; der Sachwert dient der Plausibilisierung. Gewichtung kann je nach Objekt und Markt abweichen. Ohne Gewähr.'},
+  ];
+  const gridData=[
+    {label:'Nutzfläche',val:fmt(fl,'m²')},{label:'Baujahr / RND',val:`${bj} / ${rnd} J.`},
+    {label:'Liegenschaftszins',val:(iz*100).toFixed(1)+' %'},{label:'Ertragswert',val:fmtEur(ew)},
+    {label:'Sachwert',val:fmtEur(sw)},{label:'Bodenwert',val:fmtEur(bodenwert)},
+  ];
+  return {vw,methode:'Ertragswertverfahren (60 %) + Sachwertverfahren (40 %)',steps,gridData};
+}
+
+function calcGrundstueck(brw, gf) {
+  const er=document.getElementById('erschliessung').value, lage=document.getElementById('lage').value;
+  const eF=er==='voll'?1.0:er==='teil'?0.85:0.6, lF={schlecht:0.9,normal:1.0,gut:1.1,sehr:1.2}[lage]||1.0;
+  const vw=brw*gf*eF*lF;
+  const steps=[
+    {label:'Bodenrichtwert',val:brw,isEurM2:true,
+      info:'<strong>Bodenrichtwert (BRW)</strong>: Durchschnittlicher Lagewert des Bodens für ein Gebiet mit im Wesentlichen gleichen wertbestimmenden Merkmalen, ermittelt vom Gutachterausschuss. Grundlage: § 196 BauGB. In BW alle 2 Jahre zum geraden Jahresende (aktuell Stichtag 01.01.2025).'},
+    {label:'Grundstücksfläche',val:gf,isM2:true,
+      info:'<strong>Grundstücksfläche</strong>: Amtliche Flächenangabe aus dem Liegenschaftskataster (Flurstücksfläche). Maßgeblich für die Bodenwertberechnung nach § 26 ImmoWertV.'},
+    {label:`Erschließungsfaktor (${er})`,val:eF,isRatio:true,
+      info:'<strong>Erschließungsfaktor</strong>: Berücksichtigt den Erschließungszustand. Vollständig erschlossen = 1,00 (Beiträge bereits geleistet). Teilerschlossen = 0,85 (noch ausstehende Erschließungskosten). Rohbauland = 0,60 (erhebliche Aufschließungskosten noch offen). Grundlage: §§ 127 ff. BauGB (Erschließungsbeiträge).'},
+    {label:`Lagefaktor (${lage})`,val:lF,isRatio:true,
+      info:'<strong>Lageanpassungsfaktor</strong>: Korrekturfaktor für Abweichungen der Lagebeschaffenheit des konkreten Grundstücks vom Richtwertgrundstück (Exposition, Zuschnitt, Immissionen). Ungünstig −10 %, Normal ±0 %, Günstig +10 %, Sehr günstig +20 %. Vereinfachter Ansatz nach § 24 Abs. 1 ImmoWertV.'},
+    {label:'→ Orientierungswert Grundstückswert',val:vw,bold:true,
+      info:'<strong>Grundstückswert (Orientierungswert)</strong> = Bodenrichtwert × Fläche × Erschließungsfaktor × Lagefaktor. Entspricht dem Verkehrswert des unbebauten Grundstücks nach dem Vergleichswertverfahren gemäß §§ 24–26 ImmoWertV. Gerundet auf 1.000 €. Ohne Gewähr.'},
+  ];
+  const gridData=[
+    {label:'Grundstücksfläche',val:fmt(gf,'m²')},{label:'Bodenrichtwert',val:fmt(brw,'€/m²')},
+    {label:'Erschließung',val:er},{label:'Lage',val:lage},
+    {label:'Erschließungsfaktor',val:eF.toFixed(2)},{label:'Lagefaktor',val:lF.toFixed(2)},
+  ];
+  return {vw,methode:'Vergleichswertverfahren / Bodenrichtwert (§ 196 BauGB)',steps,gridData};
+}
+
+function renderResult(r) {
+  const vw = Math.round(r.vw/1000)*1000;
+  const vwMin = Math.round(vw*0.85/1000)*1000;
+  const vwMax = Math.round(vw*1.15/1000)*1000;
+
+  document.getElementById('result-value').textContent = fmtEur(vw);
+  document.getElementById('result-method').textContent = r.methode;
+  const tl={etw:'Eigentumswohnung',efh:'Ein-/Zweifamilienhaus',mfh:'Mehrfamilienhaus',gewerbe:'Gewerbeobjekt',grundstueck:'Unbebautes Grundstück'};
+  document.getElementById('result-datum').textContent = `Berechnet am ${new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})} · ${tl[state.type]||''} · Ohne Gewähr`;
+
+  // Range-Bar
+  document.getElementById('rrb-min').textContent    = fmtEur(vwMin);
+  document.getElementById('rrb-max').textContent    = fmtEur(vwMax);
+  document.getElementById('rrb-center').textContent = fmtEur(vw);
+  // Marker immer bei 50% (da Wert die Mitte der ±15%-Spanne ist)
+  document.getElementById('rrb-marker').style.left = '50%';
+  document.getElementById('rrb-fill').style.left  = '5%';
+  document.getElementById('rrb-fill').style.width = '90%';
+  const grid=document.getElementById('result-grid'); grid.innerHTML='';
+  (r.gridData||[]).forEach(c=>{const d=document.createElement('div');d.className='result-cell';d.innerHTML=`<div class="rc-label">${c.label}</div><div class="rc-val">${c.val}</div>`;grid.appendChild(d);});
+  const steps=document.getElementById('result-steps'); steps.innerHTML='<h3>Rechenweg</h3>';
+  (r.steps||[]).forEach(row=>{
+    const d=document.createElement('div'); d.className='calc-row'+(row.bold?' total':'');
+    let v; if(row.isRatio)v=row.val.toFixed(4); else if(row.isEurM2)v=fmt(row.val,'€/m²'); else if(row.isM2)v=fmt(row.val,'m²'); else v=fmtEur(row.val);
+    const infoHtml = row.info ? `<span class="cr-info" tabindex="0">i<span class="cr-tooltip">${row.info}</span></span>` : '';
+    d.innerHTML=`<span class="cr-label">${row.label}${infoHtml}</span><span class="cr-val">${v}</span>`; steps.appendChild(d);
+  });
+}
+
+function fmtEur(v){ if(v==null||isNaN(v))return'–'; return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v); }
+function fmt(v,u){ if(v==null||isNaN(v))return'–'; return new Intl.NumberFormat('de-DE',{maximumFractionDigits:2}).format(v)+' '+u; }
+
+function resetAll() {
+  state.type=null; state.step=1;
+  document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('btn-1-next').disabled=true;
+  ['bodenrichtwert','grundstueck_flaeche','gfz','wohnflaeche','baujahr','sanierung','vergleichspreis',
+   'mfh_flaeche','mfh_baujahr','jahreskaltmiete','mfh_sanierung','gew_flaeche','gew_baujahr','gew_miete',
+   'gew_rnd','mea_zaehler','mea_nenner'].forEach(id=>{
+    const el=document.getElementById(id); if(el)el.value='';
+  });
+  const kellerCb = document.getElementById('hat_keller');
+  if (kellerCb) kellerCb.checked = false;
+  const aussenCb = document.getElementById('hat_aussenanlagen');
+  if (aussenCb) aussenCb.checked = false;
+  const kHint = document.getElementById('keller-hint');
+  if (kHint) kHint.textContent = '';
+  // Reset Ausstattung to Stufe 3
+  document.querySelectorAll('#ausstattung-group .radio-opt').forEach((b,i)=>{
+    b.classList.toggle('selected', i===2);
+  });
+  document.getElementById('ausstattung').value='3';
+  const desc = AUSSTATTUNG_DESC['3'];
+  document.getElementById('ausstattung-desc').innerHTML = `<strong>${desc.title}:</strong> ${desc.text}`;
+  document.getElementById('mea-display').textContent='–';
+  document.getElementById('mea_nenner').value='1000';
+  document.getElementById('sachwertfaktor').value='1.00';
+  document.getElementById('region_bw').value='';
+  document.getElementById('region-hint').textContent='';
+  document.getElementById('leerstand').value='3';
+  document.getElementById('bewirtschaftung').value='25';
+  document.getElementById('liegenschaftszins').value='4.0';
+  document.getElementById('gew_bwk').value='20';
+  document.getElementById('gew_zinssatz').value='6.0';
+  goStep(1);
+}
+
+document.getElementById('cr-year').textContent = new Date().getFullYear();
+updateProgress();
+</script>
+</body>
+</html>
