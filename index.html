@@ -392,7 +392,7 @@
   <div class="step active" id="step-1">
     <div class="card">
       <div class="step-eyebrow">Schritt 1 von 4</div>
-      <div class="step-heading">Welche Art von Immobilie soll bewertet werden?</div>
+      <div class="step-heading">Welche Art von Immobilie?</div>
       <div class="step-sub">Wählen Sie den Objekttyp – das Tool wählt automatisch das nach ImmoWertV 2021 passende Wertermittlungsverfahren.</div>
       <div class="type-grid">
         <button class="type-btn" data-type="etw" onclick="selectType(this)">
@@ -781,8 +781,96 @@
       </div>
 
       <div class="btn-row-result">
+        <button class="btn-next" onclick="goStep(5); renderNotarkosten();" style="flex:1;">Notarkosten ermitteln →</button>
+      </div>
+      <div style="display:flex;gap:11px;margin-top:10px;">
+        <button class="btn-dark" onclick="window.print()" style="flex:1;">🖨 Drucken / PDF</button>
+        <button class="btn-back" onclick="resetAll()" style="flex:1;">↩ Neue Berechnung</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCHRITT 5 – Notarkosten ══ -->
+  <div class="step" id="step-5">
+    <div class="card">
+      <div class="step-eyebrow">Schritt 5 von 5</div>
+      <div class="step-heading">Notarkosten</div>
+      <div class="step-sub">Geschäftsgebühren nach Anlage 2 GNotKG (Tabelle B) – Stand 01.06.2025 (BGBl. I Nr. 109)</div>
+
+      <!-- Geschäftswert -->
+      <div class="field">
+        <label>
+          Geschäftswert
+          <span class="tooltip-wrap" tabindex="0"><span class="tooltip-icon">i</span>
+            <span class="tooltip-box"><strong>Geschäftswert (§ 97 GNotKG)</strong>: Beim Immobilienkauf i.d.R. der vereinbarte Kaufpreis. Der hier vorausgefüllte ImmoAssess-Wert ist ein Orientierungswert; bitte bei bekanntem Kaufpreis entsprechend anpassen.</span>
+          </span>
+        </label>
+        <div class="field-unit">
+          <input type="number" id="gnotkg_wert" placeholder="z. B. 658000" min="1" step="1000"
+            oninput="renderNotarkosten()" onchange="renderNotarkosten()" />
+          <span class="unit">€</span>
+        </div>
+      </div>
+
+      <!-- Wertgrenze-Visualisierung -->
+      <div id="wertgrenze-wrap" style="display:none;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--grau-5);margin-bottom:10px;">Einordnung in Anlage 2 GNotKG (Tabelle B)</div>
+
+        <!-- Mini-Skala -->
+        <div style="background:var(--grau-1);border-radius:var(--radius-s);padding:16px 18px;margin-bottom:18px;border:1.5px solid var(--grau-2);">
+          <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;margin-bottom:10px;">
+            <div style="text-align:left;">
+              <div style="font-size:10px;color:var(--grau-5);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Untere Wertgrenze</div>
+              <div style="font-size:15px;font-weight:800;color:var(--grau-6);" id="wg-unten-val">—</div>
+              <div style="font-size:11px;color:var(--grau-5);">Tab. B: <span id="wg-unten-fee">—</span></div>
+            </div>
+            <div style="text-align:center;padding:0 8px;">
+              <div style="font-size:10px;color:var(--grau-5);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Ihr Wert</div>
+              <div style="background:var(--bw-schwarz);color:var(--bw-gelb);font-size:14px;font-weight:900;padding:6px 12px;border-radius:var(--radius-s);white-space:nowrap;" id="wg-mein-val">—</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:10px;color:var(--grau-5);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Einschl. Wertgrenze</div>
+              <div style="font-size:15px;font-weight:800;color:var(--bw-schwarz);" id="wg-oben-val">—</div>
+              <div style="font-size:11px;color:var(--grau-5);">Tab. B: <span style="font-weight:700;color:var(--bw-schwarz);" id="wg-oben-fee">—</span></div>
+            </div>
+          </div>
+          <!-- Balken -->
+          <div style="height:8px;background:var(--grau-2);border-radius:4px;position:relative;overflow:visible;">
+            <div style="position:absolute;top:50%;left:0;right:0;height:2px;background:var(--grau-3);transform:translateY(-50%);"></div>
+            <div id="wg-marker" style="position:absolute;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;background:var(--bw-schwarz);border-radius:50%;border:2px solid var(--bw-gelb);left:50%;"></div>
+          </div>
+          <div id="wg-naechste" style="font-size:11.5px;color:var(--grau-5);margin-top:10px;text-align:center;"></div>
+        </div>
+
+        <!-- Gebührentabelle -->
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--grau-5);margin-bottom:10px;">Geschäftsgebühren (Tabelle B × Faktor)</div>
+        <div style="border-radius:var(--radius-s);overflow:hidden;border:1.5px solid var(--grau-2);">
+          <table style="width:100%;border-collapse:collapse;font-size:14px;">
+            <thead>
+              <tr style="background:var(--bw-schwarz);color:var(--weiss);">
+                <th style="padding:11px 16px;text-align:left;font-size:12px;font-weight:700;letter-spacing:0.3px;">Gebührenfaktor</th>
+                <th style="padding:11px 16px;text-align:right;font-size:12px;font-weight:700;">1,0-Gebühr (Tab. B)</th>
+                <th style="padding:11px 16px;text-align:right;font-size:12px;font-weight:700;">Geschäftsgebühr</th>
+                <th style="padding:11px 16px;text-align:right;font-size:12px;font-weight:700;">MwSt. 19 %</th>
+                <th style="padding:11px 16px;text-align:right;font-size:12px;font-weight:700;color:var(--bw-gelb);">Gesamt inkl. MwSt.</th>
+              </tr>
+            </thead>
+            <tbody id="gnotkg-tbody"></tbody>
+          </table>
+        </div>
+
+        <div style="font-size:11px;color:var(--grau-5);margin-top:12px;line-height:1.6;">
+          <strong>Hinweis:</strong> Tabelle B nach Anlage 2 zu § 34 Abs. 3 GNotKG, i.d.F. des Kostenrechtsänderungsgesetzes 2025 (BGBl. I Nr. 109, in Kraft ab 01.06.2025). Die Geschäftsgebühr ist die 1,0-Gebühr × Gebührenfaktor. Auslagen (§§ 76 ff. GNotKG) und USt. (19 %) sind nicht enthalten. Für den Immobilienkauf fallen i.d.R. mehrere Gebührentatbestände an (Beurkundung, Vollzug, Betreuung, Grundschuldbestellung, Grundbucheintragung).
+        </div>
+      </div>
+
+      <div id="wertgrenze-placeholder" style="text-align:center;color:var(--grau-4);padding:24px 0;font-size:13px;">
+        Bitte Geschäftswert eingeben.
+      </div>
+
+      <div class="nav-row" style="margin-top:24px;">
+        <button class="btn-back" onclick="goStep(4)">← Zurück zum Ergebnis</button>
         <button class="btn-dark" onclick="window.print()">🖨 Drucken / PDF</button>
-        <button class="btn-back" onclick="resetAll()">↩ Neue Berechnung</button>
       </div>
     </div>
   </div>
@@ -797,7 +885,7 @@
 </footer>
 
 <script>
-const state = { type: null, step: 1, totalSteps: 4 };
+const state = { type: null, step: 1, totalSteps: 5 };
 
 function goStep(n) {
   document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -941,7 +1029,7 @@ function prepareStep3() {
     etw:['Vergleichswertverfahren + Sachwertverfahren (§§ 24–26, 35–39 ImmoWertV)','Vorrangig Vergleichswertverfahren. Sachwert als Plausibilisierung.'],
     efh:['Vergleichswertverfahren + Sachwertverfahren (§§ 24–26, 35–39 ImmoWertV)','Kombination beider Verfahren; Vergleichswert bei guter Marktdatenlage vorrangig.'],
     mfh:['Ertragswertverfahren (§§ 27–34 ImmoWertV)','Basis: nachhaltig erzielbare Miete, Bewirtschaftungskosten, Liegenschaftszinssatz.'],
-    gewerbe:['Ertragswertverfahren + Sachwert (§§ 27–34, 35–45 ImmoWertV)','Ertragswert vorrangig; Sachwert zur Plausibilisierung.'],
+    gewerbe:['Ertragswertverfahren + Sachwert (§§ 27–34, 35–39 ImmoWertV)','Ertragswert vorrangig; Sachwert zur Plausibilisierung.'],
     grundstueck:['Vergleichswertverfahren / Bodenrichtwert (§ 196 BauGB)','Wert = Bodenrichtwert × Fläche ± Lage-/Zuschnittskorrekturen.'],
   };
   const headings = {etw:'Angaben zur Eigentumswohnung',efh:'Angaben zum Ein-/Zweifamilienhaus',mfh:'Angaben zum Mehrfamilienhaus',gewerbe:'Angaben zum Gewerbeobjekt',grundstueck:'Angaben zum Grundstück'};
@@ -1053,12 +1141,12 @@ function calcSachVergleich(bodenwertGesamt) {
     bodenwertLabel = `Bodenwert (BRW × Fläche × Erschl. × MEA ${meaZaehler}/${meaNenner})`;
   }
 
-  const gnd = t==='etw'?80:100;
+  const gnd = 80; // SW-RL Anlage 3: GND für EFH und ETW jeweils 80 Jahre
   let effA = heute-bj;
   if (san>bj&&san<=heute) effA = Math.round((san-bj)*0.3+(heute-san));
   const rnd = Math.max(gnd-effA,10), awf = rnd/gnd;
   let zw = nhk*wf*awf;
-  if (t==='efh') zw *= 1.08;
+  // Hinweis: kein zusätzlicher EFH-Faktor – NHK-Tabelle differenziert EFH/ETW bereits
   zw *= ({mangelhaft:0.8,mittel:0.9,gut:1.0,sehrgut:1.1}[zu]||1.0);
   if (t==='etw') zw *= ({eg:0.93,mitte:1.0,dg:1.04}[et]||1.0);
   const spw = sp==='garage'?18000:sp==='aussen'?5000:0;
@@ -1079,9 +1167,9 @@ function calcSachVergleich(bodenwertGesamt) {
     ...(t==='etw' ? [{label:`Gesamtbodenwert Grundstück (vor MEA)`, val:bodenwertGesamt,
       info:'<strong>Gesamtbodenwert</strong> des Grundstücks vor Anwendung des Miteigentumsanteils. = BRW × Gesamtfläche × Erschließungsfaktor.'}] : []),
     {label:`NHK Stufe ${au} (${nhk.toLocaleString('de-DE')} €/m²${hatKeller?' inkl. Keller':''} × ${wf} m²)`,val:nhk*wf,
-      info:`<strong>Normalherstellungskosten (NHK) Stufe ${au}</strong>: ${hatKeller?nhk.toLocaleString('de-DE')+' €/m² <em>mit Keller</em> (geringer als ohne Keller, da Kellergeschoss kostengünstiger herstellbar ist)':nhk.toLocaleString('de-DE')+' €/m² <em>ohne Keller</em>'}. Basis: NHK 2010 (SW-RL Anlage 1), adjustiert mit BKI-Baupreisindex 2024 (~Faktor 1,55 ggü. 2010). Grundlage: § 36 Abs. 2 i.V.m. Anlage 4 ImmoWertV.`},
+      info:`<strong>Normalherstellungskosten (NHK) Stufe ${au}</strong>: ${hatKeller?nhk.toLocaleString('de-DE')+' €/m² <em>mit Keller</em> (geringer als ohne Keller, da Kellergeschoss kostengünstiger herstellbar ist)':nhk.toLocaleString('de-DE')+' €/m² <em>ohne Keller</em>'}. Basis: NHK 2010 (SW-RL Anlage 1), adjustiert mit BKI-Baupreisindex 2024 (~Faktor 1,65 ggü. 2010). Grundlage: § 36 Abs. 2 i.V.m. Anlage 4 ImmoWertV.`},
     {label:`Alterswertminderung (AWF ${(awf*100).toFixed(0)} %)`,val:-(nhk*wf*(1-awf)),
-      info:`<strong>Alterswertminderung</strong>: Wertminderung durch Alter und Abnutzung. AWF = RND (${rnd} J.) ÷ GND (${gnd} J.). Sanierung verlängert die Restnutzungsdauer rechnerisch. Grundlage: § 38 ImmoWertV.`},
+      info:`<strong>Alterswertminderung</strong>: Wertminderung durch Alter und Abnutzung. AWF = RND (${rnd} J.) ÷ GND (80 J.). GND für EFH und ETW beträgt jeweils 80 Jahre gem. SW-RL Anlage 3. Sanierung verlängert die Restnutzungsdauer rechnerisch. Grundlage: § 38 ImmoWertV.`},
     {label:'Zeitwert Gebäude (inkl. Zustands-/Lagekorrekturen)',val:zw,
       info:'<strong>Zeitwert Gebäude</strong> = NHK × AWF × Zustandsfaktor (mangelhaft 0,80 / mittel 0,90 / gut 1,00 / sehr gut 1,10)' + (t==='etw' ? ' × Etagenfaktor (EG 0,93 / Mitte 1,00 / DG 1,04).' : '.')},
     ...(spw?[{label:'Stellplatz / Garage',val:spw,
@@ -1095,7 +1183,7 @@ function calcSachVergleich(bodenwertGesamt) {
     {label:'→ Sachwert marktangepasst',val:sw,bold:true,
       info:'<strong>Marktangepasster Sachwert</strong>: Endwert des Sachwertverfahrens § 39 ImmoWertV. Bildet allein den Verkehrswert, wenn kein Vergleichspreis vorliegt.'},
     ...(vp>0?[{label:`→ Vergleichswert (${vp} €/m² × ${wf} m²)`,val:vergleichswert,bold:true,
-      info:'<strong>Vergleichswert</strong>: Marktpreis vergleichbarer Objekte je m² × Wohnfläche. Vorrangiges Verfahren nach § 15 ImmoWertV bei ausreichender Datenlage.'}]:[]),
+      info:'<strong>Vergleichswert</strong>: Marktpreis vergleichbarer Objekte je m² × Wohnfläche. Vorrangiges Verfahren nach § 24 ImmoWertV bei ausreichender Datenlage.'}]:[]),
     {label:'→ Orientierungswert Verkehrswert',val:vw,bold:true,
       info:'<strong>Orientierungswert Verkehrswert</strong>: Gewichtetes Mittel aus Vergleichswert (60 %) und Sachwert (40 %) bei vorhandenem Vergleichspreis; sonst = marktangepasster Sachwert. Gerundet auf 1.000 €. Ohne Gewähr.'},
   ];
@@ -1120,8 +1208,11 @@ function calcErtrag(bodenwert) {
   const iz=parseFloat(document.getElementById('liegenschaftszins').value)/100, heute=new Date().getFullYear();
   let rnd=parseFloat(document.getElementById('restnutzung').value)||0;
   if (!rnd) { let a=heute-bj; if(san>bj&&san<=heute)a=Math.round((san-bj)*0.3+(heute-san)); rnd=Math.max(80-a,10); }
-  const jre=jkm*(1-ls), bwkA=jre*bwk, jreg=jre-bwkA, bwvz=bodenwert*iz, jreg2=jreg-bwvz;
-  const rbf=(1-Math.pow(1+iz,-rnd))/iz, ewG=jreg2*rbf, vw=ewG+bodenwert;
+  const jre=jkm*(1-ls), bwkA=jre*bwk, jreg=jre-bwkA, bwvz=bodenwert*iz;
+  const jreg2Raw=jreg-bwvz;
+  const jreg2=Math.max(jreg2Raw, 0); // Gebäudereinertrag ≥ 0 (bei negativem Wert ist Gebäude ohne Ertragswert)
+  const negativerGebRE = jreg2Raw < 0;
+  const rbf=(1-Math.pow(1+iz,-rnd))/iz, ewG=jreg2*rbf, vw=Math.max(ewG+bodenwert, bodenwert);
   const steps=[
     {label:'Jahresrohertrag (Ist)',val:jkm,
       info:'<strong>Jahresrohertrag (Ist-Miete)</strong>: Tatsächlich erzielte jährliche Nettokaltmiete aller Einheiten ohne Nebenkosten. Ausgangsgröße des Ertragswertverfahrens nach § 28 ImmoWertV.'},
@@ -1137,6 +1228,8 @@ function calcErtrag(bodenwert) {
       info:`<strong>Bodenwertverzinsung</strong>: Fiktiver Zinsertrag auf den Bodenwert (${fmtEur(bodenwert)} × ${(iz*100).toFixed(1)} %). Der Boden wird als unverzinsliches Dauerkapital behandelt; sein Zinsanteil wird herausgerechnet, um den gebäudespezifischen Reinertrag zu isolieren. Grundlage: § 31 ImmoWertV.`},
     {label:'→ Jahresreinertrag Gebäude',val:jreg2,bold:true,
       info:'<strong>Jahresreinertrag Gebäude</strong>: Reinertrag der baulichen Anlage nach Abzug der Bodenwertverzinsung. Nur dieser Anteil wird über den Rentenbarwertfaktor kapitalisiert.'},
+    ...(negativerGebRE ? [{label:'⚠ Hinweis: Gebäudereinertrag war negativ → auf 0 gesetzt',val:0,
+      info:'<strong>Negativer Gebäudereinertrag</strong>: Die Bodenwertverzinsung übersteigt den Jahresreinertrag. Das Gebäude trägt keinen positiven Ertragswert. Der Verkehrswert entspricht in diesem Fall mindestens dem Bodenwert. Mögliche Ursachen: zu hoher Liegenschaftszinssatz, zu geringe Miete oder zu hoher Bodenwert.'}] : []),
     {label:`RBF (n=${rnd}J., i=${(iz*100).toFixed(1)} %)`,val:rbf,isRatio:true,
       info:`<strong>Rentenbarwertfaktor (RBF)</strong>: Kapitalisierungsfaktor für eine endliche Rente. Formel: (1 − (1+i)^−n) / i. Mit n = ${rnd} Jahren Restnutzungsdauer und i = ${(iz*100).toFixed(1)} % Liegenschaftszinssatz. Gibt an, das Wievielfache des Jahresreinertrags der Gebäudewert beträgt. Grundlage: § 34 ImmoWertV.`},
     {label:'Ertragswert Gebäude',val:ewG,
@@ -1158,7 +1251,10 @@ function calcGewerbe(bodenwert) {
   const fl=parseFloat(document.getElementById('gew_flaeche').value), bj=parseInt(document.getElementById('gew_baujahr').value);
   const jm=parseFloat(document.getElementById('gew_miete').value), iz=parseFloat(document.getElementById('gew_zinssatz').value)/100;
   const rnd=parseFloat(document.getElementById('gew_rnd').value)||30, bwk=parseFloat(document.getElementById('gew_bwk').value)/100, heute=new Date().getFullYear();
-  const jreg=jm*(1-bwk), bwvz=bodenwert*iz, jreg2=jreg-bwvz, rbf=(1-Math.pow(1+iz,-rnd))/iz, ewG=jreg2*rbf, ew=ewG+bodenwert;
+  const jreg=jm*(1-bwk), bwvz=bodenwert*iz;
+  const jreg2Raw=jreg-bwvz;
+  const jreg2=Math.max(jreg2Raw,0);
+  const rbf=(1-Math.pow(1+iz,-rnd))/iz, ewG=jreg2*rbf, ew=Math.max(ewG+bodenwert,bodenwert);
   const zw=1400*fl*Math.max((60-(heute-bj))/60,0.2), sw=bodenwert+zw, vw=ew*0.6+sw*0.4;
   const steps=[
     {label:'Jahresnettomiete',val:jm,
@@ -1214,6 +1310,7 @@ function calcGrundstueck(brw, gf) {
 
 function renderResult(r) {
   const vw = Math.round(r.vw/1000)*1000;
+  state._lastVW = vw; // für Schritt 5 Notarkosten vorausfüllen
   const vwMin = Math.round(vw*0.85/1000)*1000;
   const vwMax = Math.round(vw*1.15/1000)*1000;
 
@@ -1241,7 +1338,108 @@ function renderResult(r) {
   });
 }
 
+/* ══ GNotKG ANLAGE 2 TABELLE B ══
+   Stand: 01.06.2025 (BGBl. I Nr. 109 – KostBetreVergRÄndG 2025)
+   Format: [Geschäftswert bis (€), Gebühr Tabelle B (€)]
+════════════════════════════════════════════════════════════ */
+const GNOTKG_B = [
+  [500,15],[1000,19],[1500,23],[2000,27],[3000,33],[4000,39],[5000,45],
+  [6000,51],[7000,57],[8000,63],[9000,69],[10000,75],[13000,83],[16000,91],
+  [19000,99],[22000,107],[25000,115],[30000,125],[35000,135],[40000,145],
+  [45000,155],[50000,165],[65000,192],[80000,219],[95000,246],[110000,273],
+  [125000,300],[140000,327],[155000,354],[170000,381],[185000,408],
+  [200000,435],[230000,485],[260000,535],[290000,585],[320000,635],
+  [350000,685],[380000,735],[410000,785],[440000,835],[470000,885],
+  [500000,935],[550000,1015],[600000,1095],[650000,1175],[700000,1255],
+  [750000,1335],[800000,1415],[850000,1495],[900000,1575],[950000,1655],
+  [1000000,1735],[1050000,1815],[1100000,1895],[1150000,1975],[1200000,2055],
+  [1250000,2135],[1300000,2215],[1350000,2295],[1400000,2375],[1450000,2455],
+  [1500000,2535],[1550000,2615],[1600000,2695],[1650000,2775],[1700000,2855],
+  [1750000,2935],[1800000,3015],[1850000,3095],[1900000,3175],[1950000,3255],
+  [2000000,3335],[2050000,3415],[2100000,3495],[2150000,3575],[2200000,3655],
+  [2250000,3735],[2300000,3815],[2350000,3895],[2400000,3975],[2450000,4055],
+  [2500000,4135],[2550000,4215],[2600000,4295],[2650000,4375],[2700000,4455],
+  [2750000,4535],[2800000,4615],[2850000,4695],[2900000,4775],[2950000,4855],
+  [3000000,4935]
+];
+
+function lookupGNotKG(value) {
+  let idx = GNOTKG_B.findIndex(([limit]) => value <= limit);
+  if (idx === -1) {
+    // Über 3.000.000 €: +80 € je angefangene 50.000 €
+    const stepsAbove = Math.ceil((value - 3000000) / 50000);
+    const appLimit = 3000000 + stepsAbove * 50000;
+    const appFee   = 4935 + stepsAbove * 80;
+    return {
+      prev:  { limit: appLimit - 50000, fee: appFee - 80 },
+      apply: { limit: appLimit, fee: appFee },
+      next:  { limit: appLimit + 50000, fee: appFee + 80 }
+    };
+  }
+  const apply = { limit: GNOTKG_B[idx][0], fee: GNOTKG_B[idx][1] };
+  const prev  = idx > 0 ? { limit: GNOTKG_B[idx-1][0], fee: GNOTKG_B[idx-1][1] } : null;
+  const next  = idx < GNOTKG_B.length - 1
+    ? { limit: GNOTKG_B[idx+1][0], fee: GNOTKG_B[idx+1][1] }
+    : { limit: 3050000, fee: 5015 };
+  return { prev, apply, next };
+}
+
+function renderNotarkosten() {
+  const inputEl = document.getElementById('gnotkg_wert');
+  if (!inputEl) return;
+  // Beim ersten Aufruf: ImmoAssess-Ergebnis vorausfüllen
+  if (!inputEl.value && state._lastVW) inputEl.value = state._lastVW;
+  const rawVal = parseFloat(inputEl.value);
+  const wrap = document.getElementById('wertgrenze-wrap');
+  const ph   = document.getElementById('wertgrenze-placeholder');
+  if (!rawVal || rawVal <= 0) { wrap.style.display='none'; ph.style.display='block'; return; }
+  wrap.style.display = 'block'; ph.style.display = 'none';
+
+  const { prev, apply, next } = lookupGNotKG(rawVal);
+
+  document.getElementById('wg-mein-val').textContent  = fmtEur(rawVal);
+  document.getElementById('wg-oben-val').textContent  = fmtEur(apply.limit);
+  document.getElementById('wg-oben-fee').textContent  = fmtEur(apply.fee);
+  document.getElementById('wg-unten-val').textContent = prev ? fmtEur(prev.limit) : '–';
+  document.getElementById('wg-unten-fee').textContent = prev ? fmtEur(prev.fee) : '–';
+
+  // Marker-Position (0–100 %) zwischen unterer und einschlägiger Grenze
+  const lo = prev ? prev.limit : 0;
+  const hi = apply.limit;
+  const pct = lo < hi ? Math.round((rawVal - lo) / (hi - lo) * 100) : 50;
+  document.getElementById('wg-marker').style.left = Math.min(Math.max(pct, 5), 95) + '%';
+
+  document.getElementById('wg-naechste').textContent =
+    `Nächste Wertgrenze nach oben: ${fmtEur(next.limit)} (Tab. B: ${fmtEur(next.fee)})`;
+
+  // Gebührentabelle
+  const FAKTOREN = [
+    { f: 0.3, label: '0,3-fach', name: 'z. B. Vollzugsgebühr (KV 22110)' },
+    { f: 0.5, label: '0,5-fach', name: 'z. B. Betreuungsgebühr (KV 22200)' },
+    { f: 1.0, label: '1,0-fach', name: 'Einfache Gebühr' },
+    { f: 2.0, label: '2,0-fach', name: 'Beurkundungsgebühr Kaufvertrag (KV 21100)' },
+  ];
+  const tbody = document.getElementById('gnotkg-tbody');
+  tbody.innerHTML = '';
+  FAKTOREN.forEach(({ f, label, name }, i) => {
+    const gebuehr = apply.fee * f;
+    const isBig = f === 2.0;
+    const tr = document.createElement('tr');
+    tr.style.background = isBig ? 'var(--bw-gelb-pale)' : (i%2===0 ? 'var(--weiss)' : 'var(--grau-1)');
+    const mwst   = gebuehr * 0.19;
+    const gesamt = gebuehr + mwst;
+    tr.innerHTML = `
+      <td style="padding:12px 16px;font-weight:800;color:var(--bw-schwarz);">${label}</td>
+      <td style="padding:12px 16px;text-align:right;font-weight:600;color:var(--grau-6);">${fmtEur(apply.fee)}</td>
+      <td style="padding:12px 16px;text-align:right;font-weight:700;color:var(--bw-schwarz);">${fmtEur(gebuehr)}</td>
+      <td style="padding:12px 16px;text-align:right;font-weight:600;color:var(--grau-6);">${fmtEur2(mwst)}</td>
+      <td style="padding:12px 16px;text-align:right;font-weight:${isBig?900:700};font-size:${isBig?'15':'14'}px;color:var(--bw-schwarz);border-left:2px solid var(--bw-gelb);">${fmtEur2(gesamt)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
 function fmtEur(v){ if(v==null||isNaN(v))return'–'; return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v); }
+function fmtEur2(v){ if(v==null||isNaN(v))return'–'; return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format(v); }
 function fmt(v,u){ if(v==null||isNaN(v))return'–'; return new Intl.NumberFormat('de-DE',{maximumFractionDigits:2}).format(v)+' '+u; }
 
 function resetAll() {
@@ -1271,6 +1469,11 @@ function resetAll() {
   document.getElementById('sachwertfaktor').value='1.00';
   document.getElementById('region_bw').value='';
   document.getElementById('region-hint').textContent='';
+  state._lastVW = null;
+  const gnEl = document.getElementById('gnotkg_wert');
+  if (gnEl) gnEl.value = '';
+  const wWrap = document.getElementById('wertgrenze-wrap');
+  if (wWrap) { wWrap.style.display='none'; document.getElementById('wertgrenze-placeholder').style.display='block'; }
   document.getElementById('leerstand').value='3';
   document.getElementById('bewirtschaftung').value='25';
   document.getElementById('liegenschaftszins').value='4.0';
