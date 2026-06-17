@@ -346,6 +346,33 @@
     footer .copyright { color: var(--weiss); font-weight: 700; font-size: 11.5px; margin-bottom: 4px; }
     footer .copyright span { color: var(--bw-gelb); }
 
+    /* ── IMPRESSUM MODAL ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(42,38,35,0.55); z-index: 500;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--weiss); border-radius: var(--radius);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.22);
+      padding: 32px 36px; max-width: 520px; width: 90%;
+      max-height: 85vh; overflow-y: auto; position: relative;
+    }
+    .modal-box h2 { font-size: 20px; font-weight: 800; color: var(--bw-schwarz); margin-bottom: 18px; }
+    .modal-box h3 { font-size: 13px; font-weight: 700; color: var(--grau-6); text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 6px; }
+    .modal-box p { font-size: 13px; color: var(--grau-6); line-height: 1.65; margin-bottom: 8px; }
+    .modal-box a { color: var(--gold,#917102); }
+    .modal-close {
+      position: absolute; top: 16px; right: 16px;
+      background: var(--grau-2); border: none; border-radius: 50%;
+      width: 30px; height: 30px; font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--grau-6); transition: background 0.18s;
+    }
+    .modal-close:hover { background: var(--bw-gelb); }
+    .modal-sep { border: none; border-top: 1px solid var(--grau-2); margin: 14px 0; }
+
     @media print {
       header, footer, .nav-row, .btn-row-result, .progress-wrap, .step-dots,
       .disclaimer-banner, .gfz-info { display: none !important; }
@@ -882,8 +909,66 @@
   <div class="copyright">© <span id="cr-year"></span> <a href="mailto:robert.tinnefeld@notarkammer-bw.de">Robert Tinnefeld</a> · Alle Rechte vorbehalten</div>
   ImmoAssess · Verkehrswertermittlung für Notarassessoren · ImmoWertV 2021 · Nur zur internen Orientierung · Ohne Gewähr<br>
   Bodenrichtwerte: <a href="https://www.gutachterausschuesse-bw.de/borisbw/index.html?lang=de" target="_blank">BORIS-BW</a> ·
-  Design angelehnt an das CI des Landes Baden-Württemberg
+  Design angelehnt an das CI des Landes Baden-Württemberg<br>
+  <div style="margin-top:10px;">
+    <a href="#" onclick="document.getElementById('impressum-modal').classList.add('open'); return false;">Impressum</a>
+    &nbsp;·&nbsp;
+    <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank">Datenschutzerklärung (GitHub)</a>
+  </div>
 </footer>
+
+<!-- ══ IMPRESSUM MODAL ══ -->
+<div class="modal-overlay" id="impressum-modal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="impressum-title">
+    <button class="modal-close" onclick="document.getElementById('impressum-modal').classList.remove('open')" aria-label="Schließen">✕</button>
+    <h2 id="impressum-title">Impressum</h2>
+
+    <h3>Angaben gemäß § 5 TMG</h3>
+    <p>
+      Dr. Robert Tinnefeld<br>
+      Notarassessor<br>
+      geschäftsansässig: Friedrichstraße 9A<br>
+      70174 Stuttgart
+    </p>
+
+    <h3>Kontakt</h3>
+    <p>
+      E-Mail: <a href="mailto:robert.tinnefeld@notarkammer-bw.de">robert.tinnefeld@notarkammer-bw.de</a>
+    </p>
+
+    <hr class="modal-sep">
+
+    <h3>Haftungsausschluss</h3>
+    <p>
+      ImmoAssess ist ein internes Orientierungswerkzeug für Notarassessoren. Die bereitgestellten Berechnungen und Ergebnisse stellen keine verbindlichen Wertgutachten im Sinne der §§ 194 ff. BauGB dar und erfolgen ohne Gewähr. Für die Richtigkeit, Vollständigkeit und Aktualität der Inhalte wird keine Haftung übernommen.
+    </p>
+    <p>
+      Für verbindliche Wertaussagen ist stets ein öffentlich bestellter und vereidigter Sachverständiger hinzuzuziehen.
+    </p>
+
+    <hr class="modal-sep">
+
+    <h3>Hosting</h3>
+    <p>
+      Diese Seite wird über GitHub Pages (GitHub Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA) bereitgestellt. Informationen zur Datenverarbeitung durch GitHub finden sich in der
+      <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank">Datenschutzerklärung von GitHub</a>.
+    </p>
+    <p>
+      Die Anwendung selbst speichert, überträgt und verarbeitet keine personenbezogenen Daten. Alle Berechnungen erfolgen ausschließlich lokal im Browser des Nutzers.
+    </p>
+
+    <hr class="modal-sep">
+
+    <h3>Urheberrecht</h3>
+    <p>
+      Die Inhalte und Berechnungslogiken dieser Anwendung sind urheberrechtlich geschützt. © <span id="impressum-year"></span> Robert Tinnefeld.
+    </p>
+
+    <div style="margin-top:20px;">
+      <button class="btn-dark" onclick="document.getElementById('impressum-modal').classList.remove('open')" style="width:100%;">Schließen</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const state = { type: null, step: 1, totalSteps: 5 };
@@ -1484,6 +1569,7 @@ function resetAll() {
 }
 
 document.getElementById('cr-year').textContent = new Date().getFullYear();
+document.getElementById('impressum-year').textContent = new Date().getFullYear();
 updateProgress();
 </script>
 </body>
