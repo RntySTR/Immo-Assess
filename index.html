@@ -453,45 +453,39 @@
       <div class="step-heading">Grundstück &amp; Lage</div>
       <div class="step-sub">Angaben aus Grundbuch, Kataster oder Mandantenauskunft.</div>
 
-      <div class="field">
-        <label>
-          Stadt / Region in BW
-          <span class="tooltip-wrap" tabindex="0">
-            <span class="tooltip-icon">i</span>
-            <span class="tooltip-box">Wahl der Region befüllt <strong>Liegenschaftszinssatz, Sachwertfaktor und Bewirtschaftungskosten</strong> automatisch mit typischen Regionalwerten aus veröffentlichten Grundstücksmarktberichten BW 2024. Alle Werte bleiben manuell überschreibbar.</span>
-          </span>
-        </label>
-        <select id="region_bw" onchange="applyRegionalDefaults()">
-          <option value="">– Bitte wählen (oder manuell eintragen) –</option>
-          <optgroup label="Oberzentren">
-            <option value="stuttgart">Stuttgart</option>
-            <option value="karlsruhe">Karlsruhe</option>
-            <option value="freiburg">Freiburg im Breisgau</option>
-            <option value="mannheim">Mannheim</option>
-            <option value="heidelberg">Heidelberg</option>
-            <option value="ulm">Ulm</option>
-            <option value="heilbronn">Heilbronn</option>
-            <option value="tuebingen">Tübingen</option>
-            <option value="reutlingen">Reutlingen</option>
-            <option value="pforzheim">Pforzheim</option>
-            <option value="konstanz">Konstanz</option>
-            <option value="ludwigsburg">Ludwigsburg</option>
-            <option value="freiburg_region">Freiburg (Umland)</option>
-          </optgroup>
-          <optgroup label="Mittelzentren / Verdichtungsraum">
-            <option value="mittel_verdicht">Mittelzentrum (Verdichtungsraum)</option>
-            <option value="mittel_laendlich">Mittelzentrum (ländlicher Raum)</option>
-          </optgroup>
-          <optgroup label="Ländlicher Raum">
-            <option value="laendlich_gut">Ländlich (gute Lage)</option>
-            <option value="laendlich_normal">Ländlich (normale Lage)</option>
-          </optgroup>
-        </select>
-        <div id="region-hint" style="font-size:11px;color:var(--gruen-d);margin-top:5px;min-height:14px;font-weight:600;"></div>
+      <div class="field-row">
+        <div class="field">
+          <label>Bundesland</label>
+          <select id="bundesland_sel" onchange="onBundeslandChange()">
+            <option value="">– Bitte wählen –</option>
+            <option value="bw">Baden-Württemberg</option>
+            <option value="by">Bayern</option>
+            <option value="nrw">Nordrhein-Westfalen</option>
+            <option value="berlin">Berlin</option>
+            <option value="bb">Brandenburg</option>
+            <option value="mv">Mecklenburg-Vorpommern</option>
+            <option value="sn">Sachsen</option>
+            <option value="st">Sachsen-Anhalt</option>
+            <option value="th">Thüringen</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>
+            Region / Stadt
+            <span class="tooltip-wrap" tabindex="0">
+              <span class="tooltip-icon">i</span>
+              <span class="tooltip-box">Wahl der Region befüllt <strong>Liegenschaftszinssatz, Sachwertfaktor und Bewirtschaftungskosten</strong> automatisch mit typischen Regionalwerten aus veröffentlichten Grundstücksmarktberichten 2024. Alle Werte bleiben manuell überschreibbar.</span>
+            </span>
+          </label>
+          <select id="region_bw" onchange="applyRegionalDefaults()" disabled>
+            <option value="">– Erst Bundesland wählen –</option>
+          </select>
+        </div>
       </div>
+      <div id="region-hint" style="font-size:11px;color:var(--gruen-d);margin-top:-10px;margin-bottom:14px;min-height:14px;font-weight:600;"></div>
 
       <div style="margin-bottom:16px;">
-        <button class="btn-dark" onclick="openBoris()" style="width:100%;">🗺 BORIS-BW in neuem Tab öffnen →</button>
+        <button class="btn-dark" onclick="openBoris()" id="btn-boris-open" style="width:100%;">🗺 Bodenrichtwert-Portal öffnen →</button>
       </div>
 
       <div class="field">
@@ -888,7 +882,7 @@
         </div>
 
         <div style="font-size:11px;color:var(--grau-5);margin-top:12px;line-height:1.6;">
-          <strong>Hinweis:</strong> Tabelle B nach Anlage 2 zu § 34 Abs. 3 GNotKG, i.d.F. des Kostenrechtsänderungsgesetzes 2025 (BGBl. I Nr. 109, in Kraft ab 01.06.2025). Die Geschäftsgebühr ist die 1,0-Gebühr × Gebührenfaktor. Auslagen (§§ 76 ff. GNotKG) und USt. (19 %) sind nicht enthalten. Für den Immobilienkauf fallen i.d.R. mehrere Gebührentatbestände an (Beurkundung, Vollzug, Betreuung, Grundschuldbestellung, Grundbucheintragung).
+          <strong>Hinweis:</strong> Tabelle B nach Anlage 2 zu § 34 Abs. 3 GNotKG, i.d.F. des Kostenrechtsänderungsgesetzes 2025 (BGBl. I Nr. 109, in Kraft ab 01.06.2025). Die Mehrwertsteuer (19 %) ist in der letzten Spalte bereits ausgewiesen. Auslagen (§§ 76 ff. GNotKG, z. B. Schreibauslagen, Postgebühren) sind nicht enthalten. Für den Immobilienkauf fallen i.d.R. mehrere Gebührentatbestände an (Beurkundung, Vollzug, Betreuung, Grundschuldbestellung, Grundbucheintragung).
         </div>
       </div>
 
@@ -1003,40 +997,174 @@ function selectType(btn) {
   prepareStep3();
 }
 
-/* ══ BORIS-BW – Direktlink ══ */
+/* ══ BUNDESLÄNDER & REGIONEN (Grundstücksmarktberichte 2024) ══ */
+const BUNDESLAENDER = {
+  bw: {
+    label: 'Baden-Württemberg',
+    boris_url: 'https://www.gutachterausschuesse-bw.de/borisbw/index.html?lang=de',
+    regionen: {
+      stuttgart:        { liz_mfh:2.5, liz_gew:5.0, swf_efh:1.25, swf_etw:1.10, bwk_mfh:22, label:'Stuttgart' },
+      karlsruhe:        { liz_mfh:3.0, liz_gew:5.5, swf_efh:1.20, swf_etw:1.05, bwk_mfh:23, label:'Karlsruhe' },
+      freiburg:         { liz_mfh:2.8, liz_gew:5.2, swf_efh:1.25, swf_etw:1.10, bwk_mfh:22, label:'Freiburg i.Br.' },
+      mannheim:         { liz_mfh:3.2, liz_gew:5.5, swf_efh:1.10, swf_etw:1.00, bwk_mfh:23, label:'Mannheim' },
+      heidelberg:       { liz_mfh:2.8, liz_gew:5.0, swf_efh:1.20, swf_etw:1.10, bwk_mfh:22, label:'Heidelberg' },
+      ulm:              { liz_mfh:3.5, liz_gew:6.0, swf_efh:1.15, swf_etw:1.00, bwk_mfh:24, label:'Ulm' },
+      heilbronn:        { liz_mfh:3.5, liz_gew:6.0, swf_efh:1.10, swf_etw:1.00, bwk_mfh:24, label:'Heilbronn' },
+      tuebingen:        { liz_mfh:2.9, liz_gew:5.5, swf_efh:1.20, swf_etw:1.05, bwk_mfh:22, label:'Tübingen' },
+      reutlingen:       { liz_mfh:3.3, liz_gew:6.0, swf_efh:1.10, swf_etw:1.00, bwk_mfh:23, label:'Reutlingen' },
+      pforzheim:        { liz_mfh:3.8, liz_gew:6.5, swf_efh:1.00, swf_etw:0.95, bwk_mfh:25, label:'Pforzheim' },
+      konstanz:         { liz_mfh:3.0, liz_gew:5.5, swf_efh:1.20, swf_etw:1.05, bwk_mfh:22, label:'Konstanz' },
+      ludwigsburg:      { liz_mfh:2.8, liz_gew:5.0, swf_efh:1.20, swf_etw:1.05, bwk_mfh:22, label:'Ludwigsburg' },
+      freiburg_region:  { liz_mfh:3.2, liz_gew:5.5, swf_efh:1.15, swf_etw:1.00, bwk_mfh:23, label:'Freiburg (Umland)' },
+      mittel_verdicht:  { liz_mfh:3.8, liz_gew:6.5, swf_efh:1.05, swf_etw:0.98, bwk_mfh:25, label:'Mittelzentrum (Verdichtungsraum)' },
+      mittel_laendlich: { liz_mfh:4.2, liz_gew:7.0, swf_efh:0.98, swf_etw:0.93, bwk_mfh:26, label:'Mittelzentrum (ländlicher Raum)' },
+      laendlich_gut:    { liz_mfh:4.5, liz_gew:7.5, swf_efh:0.95, swf_etw:0.90, bwk_mfh:27, label:'Ländlich (gute Lage)' },
+      laendlich_normal: { liz_mfh:5.0, liz_gew:8.0, swf_efh:0.88, swf_etw:0.85, bwk_mfh:28, label:'Ländlich (normale Lage)' },
+    }
+  },
+  by: {
+    label: 'Bayern',
+    boris_url: 'https://www.boris-bayern.de/brwk_online.php',
+    regionen: {
+      muenchen:        { liz_mfh:2.8, liz_gew:5.2, swf_efh:1.60, swf_etw:1.25, bwk_mfh:20, label:'München (Stadt)' },
+      muenchen_umland: { liz_mfh:3.2, liz_gew:5.8, swf_efh:1.35, swf_etw:1.15, bwk_mfh:21, label:'München (Umland / Landkreis)' },
+      nuernberg:       { liz_mfh:2.8, liz_gew:5.0, swf_efh:1.20, swf_etw:1.05, bwk_mfh:22, label:'Nürnberg / Fürth / Erlangen' },
+      augsburg:        { liz_mfh:2.8, liz_gew:5.0, swf_efh:1.25, swf_etw:1.10, bwk_mfh:22, label:'Augsburg' },
+      regensburg:      { liz_mfh:3.0, liz_gew:5.5, swf_efh:1.20, swf_etw:1.05, bwk_mfh:22, label:'Regensburg' },
+      ingolstadt:      { liz_mfh:3.0, liz_gew:5.5, swf_efh:1.25, swf_etw:1.10, bwk_mfh:22, label:'Ingolstadt' },
+      wuerzburg:       { liz_mfh:3.2, liz_gew:5.5, swf_efh:1.15, swf_etw:1.00, bwk_mfh:23, label:'Würzburg' },
+      by_mittel:       { liz_mfh:3.8, liz_gew:6.5, swf_efh:1.05, swf_etw:0.95, bwk_mfh:25, label:'Mittelzentrum Bayern' },
+      by_laendlich:    { liz_mfh:4.5, liz_gew:7.5, swf_efh:0.90, swf_etw:0.85, bwk_mfh:27, label:'Ländlicher Raum Bayern' },
+    }
+  },
+  nrw: {
+    label: 'Nordrhein-Westfalen',
+    boris_url: 'https://www.boris.nrw.de/borisplus/?lang=de',
+    regionen: {
+      duesseldorf:   { liz_mfh:3.2, liz_gew:5.5, swf_efh:1.10, swf_etw:1.00, bwk_mfh:22, label:'Düsseldorf' },
+      koeln:         { liz_mfh:3.2, liz_gew:5.5, swf_efh:1.10, swf_etw:1.00, bwk_mfh:22, label:'Köln' },
+      bonn:          { liz_mfh:2.8, liz_gew:5.0, swf_efh:1.20, swf_etw:1.05, bwk_mfh:22, label:'Bonn' },
+      muenster_nrw:  { liz_mfh:2.8, liz_gew:5.0, swf_efh:1.20, swf_etw:1.05, bwk_mfh:23, label:'Münster' },
+      aachen:        { liz_mfh:3.0, liz_gew:5.5, swf_efh:1.10, swf_etw:1.00, bwk_mfh:23, label:'Aachen' },
+      bielefeld:     { liz_mfh:3.2, liz_gew:5.5, swf_efh:1.05, swf_etw:0.95, bwk_mfh:24, label:'Bielefeld' },
+      dortmund:      { liz_mfh:3.5, liz_gew:6.0, swf_efh:1.00, swf_etw:0.95, bwk_mfh:25, label:'Dortmund' },
+      ruhrgebiet:    { liz_mfh:4.8, liz_gew:7.0, swf_efh:0.85, swf_etw:0.80, bwk_mfh:26, label:'Ruhrgebiet (Essen / Bochum / Duisburg)' },
+      nrw_mittel:    { liz_mfh:4.0, liz_gew:7.0, swf_efh:0.95, swf_etw:0.90, bwk_mfh:25, label:'Mittelzentrum NRW' },
+      nrw_laendlich: { liz_mfh:4.8, liz_gew:7.5, swf_efh:0.90, swf_etw:0.85, bwk_mfh:27, label:'Ländlicher Raum NRW' },
+    }
+  },
+  berlin: {
+    label: 'Berlin',
+    boris_url: 'https://fbinter.stadt-berlin.de/boris/',
+    regionen: {
+      berlin_gut:    { liz_mfh:2.8, liz_gew:4.8, swf_efh:1.35, swf_etw:1.15, bwk_mfh:20, label:'Berlin – Innenstadtlagen' },
+      berlin_mittel: { liz_mfh:3.2, liz_gew:5.5, swf_efh:1.15, swf_etw:1.00, bwk_mfh:21, label:'Berlin – mittlere Lagen' },
+      berlin_rand:   { liz_mfh:3.8, liz_gew:6.0, swf_efh:1.00, swf_etw:0.90, bwk_mfh:22, label:'Berlin – Außenbezirke / Randlagen' },
+    }
+  },
+  bb: {
+    label: 'Brandenburg',
+    boris_url: 'https://www.boris-brandenburg.de/boris-bb/',
+    regionen: {
+      potsdam:       { liz_mfh:2.5, liz_gew:4.5, swf_efh:1.35, swf_etw:1.15, bwk_mfh:22, label:'Potsdam' },
+      bb_umland:     { liz_mfh:3.0, liz_gew:5.5, swf_efh:1.20, swf_etw:1.05, bwk_mfh:23, label:'Berliner Umland (Falkensee, Teltow, etc.)' },
+      bb_mittel:     { liz_mfh:4.0, liz_gew:7.0, swf_efh:0.95, swf_etw:0.90, bwk_mfh:26, label:'Mittelzentren Brandenburg' },
+      bb_laendlich:  { liz_mfh:5.0, liz_gew:8.0, swf_efh:0.80, swf_etw:0.75, bwk_mfh:28, label:'Ländlicher Raum Brandenburg' },
+    }
+  },
+  mv: {
+    label: 'Mecklenburg-Vorpommern',
+    boris_url: 'https://www.bodenrichtwerte-boris.de/',
+    regionen: {
+      rostock:       { liz_mfh:3.5, liz_gew:6.0, swf_efh:1.10, swf_etw:1.00, bwk_mfh:24, label:'Rostock' },
+      schwerin:      { liz_mfh:4.0, liz_gew:6.5, swf_efh:0.95, swf_etw:0.90, bwk_mfh:25, label:'Schwerin' },
+      mv_ostsee:     { liz_mfh:3.0, liz_gew:5.5, swf_efh:1.20, swf_etw:1.10, bwk_mfh:23, label:'Ostseeküste / Tourismuslagen' },
+      mv_mittel:     { liz_mfh:5.0, liz_gew:8.0, swf_efh:0.85, swf_etw:0.80, bwk_mfh:27, label:'Mittelzentren MV' },
+      mv_laendlich:  { liz_mfh:6.5, liz_gew:9.5, swf_efh:0.70, swf_etw:0.65, bwk_mfh:30, label:'Ländlicher Raum MV' },
+    }
+  },
+  sn: {
+    label: 'Sachsen',
+    boris_url: 'https://www.boris.sachsen.de/bodenrichtwerte-aktuell-4032.html',
+    regionen: {
+      leipzig:      { liz_mfh:3.0, liz_gew:5.5, swf_efh:1.15, swf_etw:1.05, bwk_mfh:23, label:'Leipzig' },
+      dresden:      { liz_mfh:3.0, liz_gew:5.5, swf_efh:1.20, swf_etw:1.05, bwk_mfh:23, label:'Dresden' },
+      chemnitz:     { liz_mfh:5.0, liz_gew:7.5, swf_efh:0.80, swf_etw:0.75, bwk_mfh:27, label:'Chemnitz' },
+      sn_mittel:    { liz_mfh:4.5, liz_gew:7.0, swf_efh:0.90, swf_etw:0.85, bwk_mfh:26, label:'Mittelzentren Sachsen' },
+      sn_laendlich: { liz_mfh:6.0, liz_gew:9.0, swf_efh:0.75, swf_etw:0.70, bwk_mfh:29, label:'Ländlicher Raum Sachsen' },
+    }
+  },
+  st: {
+    label: 'Sachsen-Anhalt',
+    boris_url: 'https://www.bodenrichtwerte-boris.de/',
+    regionen: {
+      halle:        { liz_mfh:4.0, liz_gew:6.5, swf_efh:0.90, swf_etw:0.85, bwk_mfh:26, label:'Halle (Saale)' },
+      magdeburg:    { liz_mfh:4.0, liz_gew:6.5, swf_efh:0.90, swf_etw:0.85, bwk_mfh:26, label:'Magdeburg' },
+      st_mittel:    { liz_mfh:5.0, liz_gew:8.0, swf_efh:0.80, swf_etw:0.75, bwk_mfh:28, label:'Mittelzentren Sachsen-Anhalt' },
+      st_laendlich: { liz_mfh:6.5, liz_gew:9.5, swf_efh:0.65, swf_etw:0.60, bwk_mfh:30, label:'Ländlicher Raum Sachsen-Anhalt' },
+    }
+  },
+  th: {
+    label: 'Thüringen',
+    boris_url: 'https://www.bodenrichtwerte-boris.de/',
+    regionen: {
+      erfurt:       { liz_mfh:3.5, liz_gew:6.0, swf_efh:1.00, swf_etw:0.95, bwk_mfh:25, label:'Erfurt' },
+      jena:         { liz_mfh:3.2, liz_gew:5.5, swf_efh:1.10, swf_etw:1.00, bwk_mfh:24, label:'Jena' },
+      th_mittel:    { liz_mfh:4.5, liz_gew:7.0, swf_efh:0.90, swf_etw:0.85, bwk_mfh:27, label:'Mittelzentren Thüringen' },
+      th_laendlich: { liz_mfh:6.0, liz_gew:9.0, swf_efh:0.75, swf_etw:0.70, bwk_mfh:29, label:'Ländlicher Raum Thüringen' },
+    }
+  },
+};
+
+// Flat lookup für bestehenden Code
+const REGIONAL_DATA = {};
+Object.values(BUNDESLAENDER).forEach(bl =>
+  Object.entries(bl.regionen).forEach(([k,v]) => REGIONAL_DATA[k] = v)
+);
+
+/* ══ BORIS – Direktlink je Bundesland ══ */
 function openBoris() {
-  window.open('https://www.gutachterausschuesse-bw.de/borisbw/index.html?lang=de', '_blank');
+  const bl = document.getElementById('bundesland_sel').value;
+  const url = bl && BUNDESLAENDER[bl]
+    ? BUNDESLAENDER[bl].boris_url
+    : 'https://www.bodenrichtwerte-boris.de/';
+  window.open(url, '_blank');
 }
 
-/* ══ REGIONALTABELLE BW (Grundstücksmarktberichte 2024) ══
-   Quellen: GMB Stuttgart, Karlsruhe, Freiburg, Heidelberg, Mannheim, Ulm,
-            Heilbronn, Tübingen, Reutlingen, Pforzheim, Konstanz, Ludwigsburg
-   liz_mfh  = Liegenschaftszinssatz MFH (%)
-   liz_gew  = Liegenschaftszinssatz Gewerbe (%)
-   swf_efh  = Sachwertfaktor EFH (Faktor)
-   swf_etw  = Sachwertfaktor ETW (Faktor)
-   bwk_mfh  = Bewirtschaftungskosten MFH (%)
-   Hinweis: Bandbreitenmitte; tatsächliche GA-Werte können abweichen.
-══════════════════════════════════════════════════════════════ */
-const REGIONAL_DATA = {
-  stuttgart:        { liz_mfh:2.5, liz_gew:5.0, swf_efh:1.25, swf_etw:1.10, bwk_mfh:22, label:'Stuttgart' },
-  karlsruhe:        { liz_mfh:3.0, liz_gew:5.5, swf_efh:1.20, swf_etw:1.05, bwk_mfh:23, label:'Karlsruhe' },
-  freiburg:         { liz_mfh:2.8, liz_gew:5.2, swf_efh:1.25, swf_etw:1.10, bwk_mfh:22, label:'Freiburg i.Br.' },
-  mannheim:         { liz_mfh:3.2, liz_gew:5.5, swf_efh:1.10, swf_etw:1.00, bwk_mfh:23, label:'Mannheim' },
-  heidelberg:       { liz_mfh:2.8, liz_gew:5.0, swf_efh:1.20, swf_etw:1.10, bwk_mfh:22, label:'Heidelberg' },
-  ulm:              { liz_mfh:3.5, liz_gew:6.0, swf_efh:1.15, swf_etw:1.00, bwk_mfh:24, label:'Ulm' },
-  heilbronn:        { liz_mfh:3.5, liz_gew:6.0, swf_efh:1.10, swf_etw:1.00, bwk_mfh:24, label:'Heilbronn' },
-  tuebingen:        { liz_mfh:2.9, liz_gew:5.5, swf_efh:1.20, swf_etw:1.05, bwk_mfh:22, label:'Tübingen' },
-  reutlingen:       { liz_mfh:3.3, liz_gew:6.0, swf_efh:1.10, swf_etw:1.00, bwk_mfh:23, label:'Reutlingen' },
-  pforzheim:        { liz_mfh:3.8, liz_gew:6.5, swf_efh:1.00, swf_etw:0.95, bwk_mfh:25, label:'Pforzheim' },
-  konstanz:         { liz_mfh:3.0, liz_gew:5.5, swf_efh:1.20, swf_etw:1.05, bwk_mfh:22, label:'Konstanz' },
-  ludwigsburg:      { liz_mfh:2.8, liz_gew:5.0, swf_efh:1.20, swf_etw:1.05, bwk_mfh:22, label:'Ludwigsburg' },
-  freiburg_region:  { liz_mfh:3.2, liz_gew:5.5, swf_efh:1.15, swf_etw:1.00, bwk_mfh:23, label:'Freiburg (Umland)' },
-  mittel_verdicht:  { liz_mfh:3.8, liz_gew:6.5, swf_efh:1.05, swf_etw:0.98, bwk_mfh:25, label:'Mittelzentrum / Verdichtungsraum' },
-  mittel_laendlich: { liz_mfh:4.2, liz_gew:7.0, swf_efh:0.98, swf_etw:0.93, bwk_mfh:26, label:'Mittelzentrum / ländlicher Raum' },
-  laendlich_gut:    { liz_mfh:4.5, liz_gew:7.5, swf_efh:0.95, swf_etw:0.90, bwk_mfh:27, label:'Ländlich (gute Lage)' },
-  laendlich_normal: { liz_mfh:5.0, liz_gew:8.0, swf_efh:0.88, swf_etw:0.85, bwk_mfh:28, label:'Ländlich (normale Lage)' },
-};
+/* ══ Bundesland-Wechsel → Region-Dropdown befüllen ══ */
+function onBundeslandChange() {
+  const bl = document.getElementById('bundesland_sel').value;
+  const regionSel = document.getElementById('region_bw');
+  const borisBtn  = document.getElementById('btn-boris-open');
+  regionSel.innerHTML = '<option value="">– Bitte wählen –</option>';
+  document.getElementById('region-hint').textContent = '';
+  if (!bl || !BUNDESLAENDER[bl]) {
+    regionSel.disabled = true;
+    borisBtn.textContent = '🗺 Bodenrichtwert-Portal öffnen →';
+    return;
+  }
+  const { label, regionen } = BUNDESLAENDER[bl];
+  borisBtn.textContent = label + ' – Bodenrichtwert-Portal öffnen →';
+  const groups = { 'Städte / Oberzentren': [], 'Mittelzentren': [], 'Ländlicher Raum': [] };
+  Object.entries(regionen).forEach(([k, d]) => {
+    const l = d.label.toLowerCase();
+    if (l.includes('mittelzentrum') || l.includes('mittelzentren')) groups['Mittelzentren'].push([k,d]);
+    else if (l.includes('ländlich') || l.includes('laendlich')) groups['Ländlicher Raum'].push([k,d]);
+    else groups['Städte / Oberzentren'].push([k,d]);
+  });
+  Object.entries(groups).forEach(([grp, entries]) => {
+    if (!entries.length) return;
+    const og = document.createElement('optgroup');
+    og.label = grp;
+    entries.forEach(([k,d]) => {
+      const o = document.createElement('option');
+      o.value = k; o.textContent = d.label;
+      og.appendChild(o);
+    });
+    regionSel.appendChild(og);
+  });
+  regionSel.disabled = false;
+}
 
 function applyRegionalDefaults() {
   const key = document.getElementById('region_bw').value;
@@ -1044,22 +1172,20 @@ function applyRegionalDefaults() {
   if (!key || !REGIONAL_DATA[key]) { hint.textContent = ''; return; }
   const d = REGIONAL_DATA[key];
   const t = state.type;
-  // Liegenschaftszinssatz
   const lizEl_mfh = document.getElementById('liegenschaftszins');
   const lizEl_gew = document.getElementById('gew_zinssatz');
   if (lizEl_mfh) lizEl_mfh.value = d.liz_mfh.toFixed(1);
   if (lizEl_gew) lizEl_gew.value = d.liz_gew.toFixed(1);
-  // Sachwertfaktor
   const swfEl = document.getElementById('sachwertfaktor');
-  if (swfEl) {
-    const swf = (t === 'etw') ? d.swf_etw : d.swf_efh;
-    swfEl.value = swf.toFixed(2);
-  }
-  // BWK
+  if (swfEl) swfEl.value = (t === 'etw' ? d.swf_etw : d.swf_efh).toFixed(2);
   const bwkEl = document.getElementById('bewirtschaftung');
   if (bwkEl) bwkEl.value = d.bwk_mfh;
-  hint.textContent = `✓ Regionalwerte für ${d.label} vorbelegt (GMB BW 2024) – bitte ggf. anpassen`;
+  // Bundesland-Name für Hinweis ermitteln
+  const blKey = document.getElementById('bundesland_sel').value;
+  const blLabel = blKey && BUNDESLAENDER[blKey] ? BUNDESLAENDER[blKey].label : '';
+  hint.textContent = `✓ Regionalwerte für ${d.label}${blLabel ? ' (' + blLabel + ')' : ''} vorbelegt (GMB 2024) – bitte ggf. anpassen`;
 }
+
 
 function updateMeaDisplay() {
   const z = parseFloat(document.getElementById('mea_zaehler').value) || 0;
@@ -1104,7 +1230,7 @@ function updateKellerHint() {
 function validateStep2() {
   const brw = parseFloat(document.getElementById('bodenrichtwert').value);
   const fl  = parseFloat(document.getElementById('grundstueck_flaeche').value);
-  if (!brw || brw <= 0) { alert('Bitte Bodenrichtwert eintragen (aus BORIS-BW ermitteln).'); return; }
+  if (!brw || brw <= 0) { alert('Bitte Bodenrichtwert eintragen (aus dem Bodenrichtwert-Portal des Bundeslands ermitteln).'); return; }
   if (!fl  || fl  <= 0) { alert('Bitte Grundstücksfläche eintragen.'); return; }
   goStep(3);
 }
@@ -1155,12 +1281,6 @@ function validateStep3() {
     if (!parseFloat(document.getElementById('gew_flaeche').value)||!parseInt(document.getElementById('gew_baujahr').value)||!parseFloat(document.getElementById('gew_miete').value)) { alert('Bitte Fläche, Baujahr und Jahresnettomiete ausfüllen.'); return; }
   }
   berechnen(); goStep(4);
-}
-
-// Regionalwerte noch einmal anwenden, falls Region in Schritt 2 gewählt wurde
-// (Felder existieren erst ab Schritt 3 im DOM – daher beim Berechnen-Klick nochmals)
-function applyRegionalOnCalc() {
-  applyRegionalDefaults();
 }
 
 function selectRadio(btn, fieldId, value) {
@@ -1517,7 +1637,7 @@ function renderNotarkosten() {
     tr.innerHTML = `
       <td style="padding:12px 16px;font-weight:800;color:var(--bw-schwarz);">${label}</td>
       <td style="padding:12px 16px;text-align:right;font-weight:600;color:var(--grau-6);">${fmtEur(apply.fee)}</td>
-      <td style="padding:12px 16px;text-align:right;font-weight:700;color:var(--bw-schwarz);">${fmtEur(gebuehr)}</td>
+      <td style="padding:12px 16px;text-align:right;font-weight:700;color:var(--bw-schwarz);">${fmtEur2(gebuehr)}</td>
       <td style="padding:12px 16px;text-align:right;font-weight:600;color:var(--grau-6);">${fmtEur2(mwst)}</td>
       <td style="padding:12px 16px;text-align:right;font-weight:${isBig?900:700};font-size:${isBig?'15':'14'}px;color:var(--bw-schwarz);border-left:2px solid var(--bw-gelb);">${fmtEur2(gesamt)}</td>`;
     tbody.appendChild(tr);
@@ -1529,7 +1649,7 @@ function fmtEur2(v){ if(v==null||isNaN(v))return'–'; return new Intl.NumberFor
 function fmt(v,u){ if(v==null||isNaN(v))return'–'; return new Intl.NumberFormat('de-DE',{maximumFractionDigits:2}).format(v)+' '+u; }
 
 function resetAll() {
-  state.type=null; state.step=1;
+  state.type=null; state.step=1; state._lastVW=null;
   document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('selected'));
   document.getElementById('btn-1-next').disabled=true;
   ['bodenrichtwert','grundstueck_flaeche','gfz','wohnflaeche','baujahr','sanierung','vergleichspreis',
@@ -1537,37 +1657,90 @@ function resetAll() {
    'gew_rnd','mea_zaehler','mea_nenner'].forEach(id=>{
     const el=document.getElementById(id); if(el)el.value='';
   });
+
+  // ── Radio-Gruppen zurücksetzen ──
+  function resetRadio(groupId, hiddenId, defaultValue) {
+    const grp = document.getElementById(groupId) || document.querySelector(`[id="${groupId}"]`);
+    // Suche über Eltern der hidden inputs
+    const hidden = document.getElementById(hiddenId);
+    if (hidden) hidden.value = defaultValue;
+    // Alle radio-opts in der Elterngruppe
+    const opts = hidden ? hidden.previousElementSibling?.querySelectorAll?.('.radio-opt') : null;
+    if (opts) {
+      opts.forEach(b => {
+        const val = b.getAttribute('onclick')?.match(/'([^']+)'\)$/)?.[1];
+        b.classList.toggle('selected', val === defaultValue);
+      });
+    }
+  }
+  // Erschließung (step 2)
+  document.getElementById('erschliessung').value = 'voll';
+  document.querySelectorAll('#erschliessung-group .radio-opt').forEach((b,i) => b.classList.toggle('selected', i===0));
+  // Zustand (step 3)
+  document.getElementById('zustand').value = 'gut';
+  document.querySelectorAll('[onclick*="selectRadio(this,\'zustand\'"]').forEach(b => {
+    b.classList.toggle('selected', b.getAttribute('onclick').includes("'gut'"));
+  });
+  // Stellplatz (step 3)
+  document.getElementById('stellplatz').value = 'kein';
+  document.querySelectorAll('[onclick*="selectRadio(this,\'stellplatz\'"]').forEach(b => {
+    b.classList.toggle('selected', b.getAttribute('onclick').includes("'kein'"));
+  });
+  // Etage (step 3, ETW)
+  document.getElementById('etage').value = 'mitte';
+  document.querySelectorAll('[onclick*="selectRadio(this,\'etage\'"]').forEach(b => {
+    b.classList.toggle('selected', b.getAttribute('onclick').includes("'mitte'"));
+  });
+  // Lage (step 3, Grundstück)
+  document.getElementById('lage').value = 'normal';
+  document.querySelectorAll('[onclick*="selectRadio(this,\'lage\'"]').forEach(b => {
+    b.classList.toggle('selected', b.getAttribute('onclick').includes("'normal'"));
+  });
+
+  // Checkboxen
   const kellerCb = document.getElementById('hat_keller');
   if (kellerCb) kellerCb.checked = false;
   const aussenCb = document.getElementById('hat_aussenanlagen');
   if (aussenCb) aussenCb.checked = false;
   const kHint = document.getElementById('keller-hint');
   if (kHint) kHint.textContent = '';
-  // Reset Ausstattung to Stufe 3
+
+  // Ausstattung zurück auf Stufe 3
   document.querySelectorAll('#ausstattung-group .radio-opt').forEach((b,i)=>{
     b.classList.toggle('selected', i===2);
   });
   document.getElementById('ausstattung').value='3';
   const desc = AUSSTATTUNG_DESC['3'];
   document.getElementById('ausstattung-desc').innerHTML = `<strong>${desc.title}:</strong> ${desc.text}`;
+
+  // MEA / Sachwertfaktor
   document.getElementById('mea-display').textContent='–';
   document.getElementById('mea_nenner').value='1000';
   document.getElementById('sachwertfaktor').value='1.00';
+
+  // Bundesland / Region
   document.getElementById('region_bw').value='';
+  document.getElementById('bundesland_sel').value='';
+  document.getElementById('region_bw').disabled = true;
+  document.getElementById('region_bw').innerHTML = '<option value="">– Erst Bundesland wählen –</option>';
+  document.getElementById('btn-boris-open').textContent = '🗺 Bodenrichtwert-Portal öffnen →';
   document.getElementById('region-hint').textContent='';
-  state._lastVW = null;
+
+  // Notarkosten
   const gnEl = document.getElementById('gnotkg_wert');
   if (gnEl) gnEl.value = '';
   const wWrap = document.getElementById('wertgrenze-wrap');
   if (wWrap) { wWrap.style.display='none'; document.getElementById('wertgrenze-placeholder').style.display='block'; }
+
+  // Numerische Defaults
   document.getElementById('leerstand').value='3';
   document.getElementById('bewirtschaftung').value='25';
   document.getElementById('liegenschaftszins').value='4.0';
   document.getElementById('gew_bwk').value='20';
   document.getElementById('gew_zinssatz').value='6.0';
+
   goStep(1);
 }
-
 document.getElementById('cr-year').textContent = new Date().getFullYear();
 document.getElementById('impressum-year').textContent = new Date().getFullYear();
 updateProgress();
